@@ -2,6 +2,7 @@ package router
 
 import (
 	"fmt"
+	"github.com/foreversmart/plate/logger"
 	"github.com/foreversmart/plate/middleware"
 
 	"github.com/gin-gonic/gin"
@@ -31,6 +32,7 @@ func NewRouter(c *ConfigType, handle Handler) *Router {
 }
 
 func (r *Router) Run() {
+	logger.StdLog.Infof("server started at %s:%d", r.Config.Host, r.Config.Port)
 	r.Engine.Run(fmt.Sprintf("%s:%d", r.Config.Host, r.Config.Port))
 }
 

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"github.com/BurntSushi/toml"
 	"io/ioutil"
 	"os"
@@ -10,11 +11,13 @@ import (
 // Config 公共配置
 type TomlConfig struct {
 	C map[string]interface{}
+	t map[string]interface{}
 }
 
 func NewTomlConfig() *TomlConfig {
 	return &TomlConfig{
 		C: make(map[string]interface{}),
+		t: make(map[string]interface{}),
 	}
 }
 
@@ -24,7 +27,27 @@ func (c *TomlConfig) Init(mode ModeType, path, configName, host, meta string) er
 		return err
 	}
 
-	_, err = toml.Decode(string(content), &c.C)
+	_, err = toml.Decode(string(content), &c.t)
+	if err != nil {
+		return err
+	}
+
+	for k, v := range c.C {
+		vv, ok := c.t[k]
+		if !ok {
+			continue
+		}
+
+		s, e := json.Marshal(vv)
+		if e != nil {
+			panic(e)
+		}
+
+		e = json.Unmarshal(s, &v)
+		if e != nil {
+			panic(e)
+		}
+	}
 
 	return err
 }

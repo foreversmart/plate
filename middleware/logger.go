@@ -2,15 +2,11 @@ package middleware
 
 import (
 	"fmt"
+	"github.com/foreversmart/plate/common"
 	"github.com/foreversmart/plate/logger"
 	"time"
 
 	"github.com/gin-gonic/gin"
-)
-
-const (
-	RequestLoggerKey = "request_logger"
-	RequestIDKey     = "request_id"
 )
 
 func SetLog() gin.HandlerFunc {
@@ -23,7 +19,7 @@ func Log(decorateLogFunc func(requestLog *logger.Log, c *gin.Context)) gin.Handl
 		path := c.Request.URL.Path
 		sourceIP := getRemoteIP(c)
 		method := c.Request.Method
-		requestID := c.GetString(RequestIDKey)
+		requestID := c.GetString(common.RequestID)
 
 		requestLog := logger.NewEmptyLogger()
 
@@ -35,7 +31,7 @@ func Log(decorateLogFunc func(requestLog *logger.Log, c *gin.Context)) gin.Handl
 		})
 
 		// Set example variable
-		c.Set(RequestLoggerKey, requestLog)
+		c.Set(common.RequestLogger, requestLog)
 
 		requestLog.WithFieldsNewLog(map[string]interface{}{
 			"time_start": start,
@@ -71,10 +67,11 @@ func Log(decorateLogFunc func(requestLog *logger.Log, c *gin.Context)) gin.Handl
 	}
 }
 
+
 func commonDecorateLogFunc() func(requestLog *logger.Log, c *gin.Context) {
 	return func(requestLog *logger.Log, c *gin.Context) {
-		logger.SetLogLevel("info", requestLog)
-		logger.SetFormat("json", requestLog)
+		requestLog.SetLogLevel("info")
+		requestLog.SetFormat("json")
 		requestLog.AddDefaultHook()
 	}
 }

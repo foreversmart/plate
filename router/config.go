@@ -1,6 +1,6 @@
 package router
 
-var Config *ConfigType
+var Config = &ConfigType{}
 
 // ServerConfig server配置
 type ConfigType struct {

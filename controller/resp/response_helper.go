@@ -1,9 +1,9 @@
 package resp
 
 import (
+	"github.com/foreversmart/plate/common"
 	"github.com/foreversmart/plate/errors"
 	"github.com/foreversmart/plate/logger"
-	"github.com/foreversmart/plate/middleware"
 	"net/http"
 	"time"
 
@@ -12,7 +12,7 @@ import (
 
 // Response 正常返回，提供给外部调用
 func Response(c *gin.Context, data interface{}) {
-	requestID := c.GetString(middleware.RequestIDKey)
+	requestID := c.GetString(common.RequestID)
 	CommonSetHeader(c)
 	c.JSON(http.StatusOK, &ResponseData{
 		Data:      data,
@@ -22,7 +22,7 @@ func Response(c *gin.Context, data interface{}) {
 
 // PageResponse 分页返回，提供给外部调用
 func PageResponse(c *gin.Context, data interface{}, page, size, total int) {
-	requestID := c.GetString(middleware.RequestIDKey)
+	requestID := c.GetString(common.RequestID)
 	CommonSetHeader(c)
 	c.JSON(http.StatusOK, &ResponseData{
 		Data:      data,
@@ -35,7 +35,7 @@ func PageResponse(c *gin.Context, data interface{}, page, size, total int) {
 
 // ErrorResponse 错误返回，提供给外部调用
 func ErrorResponse(c *gin.Context, err error) {
-	requestID := c.GetString(middleware.RequestIDKey)
+	requestID := c.GetString(common.RequestID)
 	CommonSetHeader(c)
 	logger.LoggerFromContext(c).Infof("bad response %s request id %s", err.Error(), requestID)
 	if stdErr, ok := err.(*errors.Error); ok {
@@ -66,8 +66,8 @@ func RawCSVResponse(c *gin.Context, data []byte) {
 }
 
 func CommonSetHeader(c *gin.Context) {
-	requestId := c.GetString(middleware.RequestIDKey)
-	c.Writer.Header().Set(middleware.RequestIDKey, requestId)
+	requestId := c.GetString(common.RequestID)
+	c.Writer.Header().Set(common.RequestID, requestId)
 
 	// TODO uniform time key
 	c.Writer.Header().Set("data", time.Now().Format("2006-01-02T15:04:05.000+08:00"))
