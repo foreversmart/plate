@@ -43,3 +43,40 @@ type Configer interface {
 	Register(key string, config interface{})
 }
 ``` 
+
+##### TODO LIST
+v0.05
+
+---
+* more protocol support not only http but rpc
+* more data format support json, xml, protobuf
+
+v0.04
+
+---
+* projects generate tools
+* more middleware support auth, ratelimit, tracing, metrics
+
+v0.03
+
+---
+
+* plate server new route define to compatible with more golang http   
+* new route define middleware
+* easy http test methods support
+
+v0.02
+
+---
+
+* easy use client to call plate server
+* think about model layer interface design
+* simplify application
+  
+v0.01
+
+---
+
+* init framework include application, config, error, logger, middleware, controller and so on.
+* http route only support gin framework 
+* simple runnable example.
