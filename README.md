@@ -37,7 +37,7 @@ config something. we suggest the component hold a config struct which
 defined the specific config content only need by it. then then caller will use 
 configer to init the config struct content data.
 
-```
+```go
 type Configer interface {
 	Init(mode ModeType, path, configName, host, meta string) error
 	Register(key string, config interface{})
