@@ -2,7 +2,6 @@ package model
 
 import (
 	"os"
-	"server/utils"
 	"strings"
 	"testing"
 )
@@ -18,8 +17,6 @@ func TestMain(m *testing.M) {
 	if len(srcPaths) > 0 {
 		srcPath = srcPaths[0]
 	}
-
-	utils.StdLog = utils.NewEmptyLogger()
 
 	SetTest(m, srcPath)
 }

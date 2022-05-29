@@ -1,13 +1,11 @@
 package model
 
 import (
+	"github.com/foreversmart/mgo"
+	"github.com/foreversmart/plate/config"
+	"github.com/foreversmart/plate/logger"
 	"sync"
 	"time"
-
-	"github.com/foreversmart/mgo"
-	"server/application/conf"
-
-	"server/utils"
 )
 
 const (
@@ -21,12 +19,12 @@ type Model struct {
 	session    *mgo.Session
 	collection *mgo.Collection
 
-	config  *conf.ModelConfig
-	logger  utils.Logger
+	config  *config.ModelConfig
+	logger  logger.Logger
 	indexes map[string]bool
 }
 
-func NewModel(config *conf.ModelConfig, logger utils.Logger) *Model {
+func NewModel(config *config.ModelConfig, logger logger.Logger) *Model {
 	dsn := "mongodb://"
 	if config.User != "" && config.Passwd != "" {
 		dsn += config.User + ":" + config.Passwd + "@"
@@ -112,7 +110,7 @@ func (model *Model) C(name string) *Model {
 	return copiedDB
 }
 
-func (model *Model) Config() *conf.ModelConfig {
+func (model *Model) Config() *config.ModelConfig {
 	return model.config
 }
 
