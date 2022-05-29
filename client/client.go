@@ -3,13 +3,13 @@ package client
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/foreversmart/plate/errors"
+	"github.com/foreversmart/plate/logger"
 	"io/ioutil"
 	"net/http"
-	"server/errors"
-	"server/utils"
 )
 
-func DoRequest(logger utils.Logger, uri string, args, ret interface{}) error {
+func DoRequest(logger logger.Logger, uri string, args, ret interface{}) error {
 	bt, _ := json.Marshal(args)
 	reader := bytes.NewReader(bt)
 	resp, err := http.Post(uri, "application/json", reader)
