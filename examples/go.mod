@@ -3,6 +3,7 @@ module example
 go 1.18
 
 require (
+	github.com/foreversmart/plate v0.0.0-20220529031517-18bdc8d4cd25
 	github.com/gin-gonic/gin v1.7.7
 )
 
