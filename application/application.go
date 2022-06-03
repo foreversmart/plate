@@ -5,15 +5,19 @@ import (
 	"github.com/foreversmart/plate/logger"
 	"github.com/foreversmart/plate/router"
 	"io"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 type Application struct {
 	config.Configer
-	*router.Router
+	router.V2Router
 	TraceCloser io.Closer
 }
 
-func NewApplication(mode config.ModeType, srcPath string, handle router.Handler) (app *Application, err error) {
+func NewApplication(mode config.ModeType, srcPath string, r router.V2Router) (app *Application, err error) {
 	app = &Application{}
 	c := config.NewTomlConfig()
 	app.Configer = c
@@ -36,6 +40,25 @@ func NewApplication(mode config.ModeType, srcPath string, handle router.Handler)
 	logger.StdLog.Debug("std logger setup completed.")
 
 	// route
-	app.Router = router.NewRouter(router.Config, handle)
+	app.V2Router = r
+
+	go func() {
+		sigs := make(chan os.Signal, 1)
+		signal.Notify(sigs, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGUSR1, syscall.SIGUSR2)
+
+		for {
+			select {
+			case <-sigs:
+				logger.StdLog.Info("接受到了结束进程的信号")
+
+				time.Sleep(5 * time.Second)
+
+				// close trace instance
+
+				os.Exit(0)
+			}
+		}
+
+	}()
 	return
 }
