@@ -36,7 +36,7 @@ func (r *GinRouter) Handle(method, path string, handler HanldeV2, v interface{})
 	r.Engine.Handle(method, path, func(c *gin.Context) {
 		// TODO
 		nv := reflect.New(vt)
-		nv.Elem().Field(i
+		nv.Elem().Field()
 		nv.Elem().Set(vv.Elem())
 		nvi := nv.Interface()
 
