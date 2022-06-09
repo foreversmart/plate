@@ -3,40 +3,71 @@ package tagger
 import (
 	"fmt"
 	"github.com/valyala/fastjson"
+	"io/ioutil"
+	"net/http"
 	"reflect"
 	"strconv"
 	"strings"
 )
 
-//func Parse(request *http.Request, v reflect.Value, prefix string) error {
-//	body, err := ioutil.ReadAll(request.Body)
-//	defer request.Body.Close()
-//	if err != nil {
-//		return err
-//	}
-//
-//	jsonValue, err := fastjson.Parse(string(body))
-//	if err != nil {
-//		return err
-//	}
-//
-//}
+type Requester interface {
+	Request() *http.Request
+	Params() map[string][]string // path param value
+}
+
+type ParseRequester interface {
+}
+
+func ParseRequest(req Requester, v reflect.Value) error {
+	body, err := ioutil.ReadAll(req.Request().Body)
+	defer req.Request().Body.Close()
+	if err != nil {
+		return err
+	}
+
+	jsonValue, err := fastjson.Parse(string(body))
+	if err != nil {
+		return err
+	}
+
+	meta := make(map[string]map[string][]string)
+	meta[LocHeader] = req.Request().Header
+
+	formErr := req.Request().ParseForm()
+	// indicate is form request
+	if formErr == nil {
+		meta[LocForm] = req.Request().PostForm
+	}
+	meta[LocQuery] = req.Request().URL.Query()
+	meta[LocPath] = req.Params()
+
+	return Parse(v, jsonValue, nil, nil)
+}
 
 const (
 	TagNameFetch = "plate"
 	TagNameCheck = "check"
 	TagOption    = ","
+
+	LocHeader = "header"
+	LocBody   = "body"
+	LocPath   = "path"
+	LocForm   = "form"
+	LocQuery  = "query"
 )
 
 /*
+	Parse: parse a json value and meta to struct reflect value
 	type A struct {
 		B string `plate:"b,body" check:"int>10"`
 		B string `plate:"b,header"`
 		B string `plate:"b,path"`
 		B string `plate:"b,form"`
 	}
+	//
+	// meta must be golang basic type such as int, string, bool , float
 */
-func parse(v reflect.Value, jsonValue *fastjson.Value, jsonPath []string) error {
+func Parse(v reflect.Value, jsonValue *fastjson.Value, meta map[string]map[string]string, jsonPath []string) error {
 	if v.Kind() == reflect.Struct {
 		for i := 0; i < v.Type().NumField(); i++ {
 			field := v.Type().Field(i)
@@ -58,12 +89,19 @@ func parse(v reflect.Value, jsonValue *fastjson.Value, jsonPath []string) error 
 
 			switch loc {
 			case "body":
-				parseJson(v.Field(i), jsonValue, newJsonPath)
-			case "header":
-			case "path":
-			case "form":
+				parseJson(v.Field(i), jsonValue, meta, newJsonPath)
 			default:
-				return fmt.Errorf("")
+				metaMap, ok := meta[loc]
+				if !ok {
+					continue
+				}
+
+				metaValue, ok := metaMap[name]
+				if !ok {
+					continue
+				}
+
+				parseValueByText(v.Field(i), metaValue)
 
 			}
 		}
@@ -72,10 +110,10 @@ func parse(v reflect.Value, jsonValue *fastjson.Value, jsonPath []string) error 
 	return nil
 }
 
-func parseJson(v reflect.Value, jsonValue *fastjson.Value, jsonPath []string) error {
+func parseJson(v reflect.Value, jsonValue *fastjson.Value, meta map[string]map[string]string, jsonPath []string) error {
 	switch v.Kind() {
 	case reflect.Struct:
-		parse(v, jsonValue, jsonPath)
+		Parse(v, jsonValue, meta, jsonPath)
 	case reflect.Slice, reflect.Array:
 		vt := v.Type()
 		// fastjson array value
@@ -94,14 +132,14 @@ func parseJson(v reflect.Value, jsonValue *fastjson.Value, jsonPath []string) er
 
 		// parse array item
 		for i := 0; i < len(arrayValue); i++ {
-			parseJson(v.Index(i), arrayValue[i], nil)
+			parseJson(v.Index(i), arrayValue[i], meta, nil)
 		}
 
 	case reflect.Pointer:
 		vt := v.Type()
 		pointerType := vt.Elem()
 		pointerValue := reflect.New(pointerType)
-		parseJson(pointerValue.Elem(), jsonValue, jsonPath)
+		parseJson(pointerValue.Elem(), jsonValue, meta, jsonPath)
 		v.Set(pointerValue)
 	case reflect.Map:
 		vt := v.Type()
@@ -132,7 +170,7 @@ func parseJson(v reflect.Value, jsonValue *fastjson.Value, jsonPath []string) er
 			}
 
 			mapValueValue := reflect.New(mapValueType).Elem()
-			err = parseJson(mapValueValue, childJsonValue, nil)
+			err = parseJson(mapValueValue, childJsonValue, meta, nil)
 			if err != nil {
 				errStr = errStr + " | " + err.Error() + " | "
 			}
@@ -168,13 +206,13 @@ func parseJson(v reflect.Value, jsonValue *fastjson.Value, jsonPath []string) er
 		case fastjson.TypeObject:
 			// Golang json unmarshal to map[string]interface{} so do the same
 			a := make(map[string]interface{})
-			parseJson(reflect.ValueOf(&a).Elem(), jsonValue, jsonPath)
+			parseJson(reflect.ValueOf(&a).Elem(), jsonValue, meta, jsonPath)
 			v.Set(reflect.ValueOf(a))
 		case fastjson.TypeArray:
 			jvArray := jv.GetArray()
 			a := make([]interface{}, len(jv.GetArray()))
 			for i := 0; i < len(jvArray); i++ {
-				parseJson(reflect.ValueOf(&a[i]).Elem(), jvArray[i], nil)
+				parseJson(reflect.ValueOf(&a[i]).Elem(), jvArray[i], meta, nil)
 			}
 			v.Set(reflect.ValueOf(a))
 		case fastjson.TypeString:
@@ -190,6 +228,48 @@ func parseJson(v reflect.Value, jsonValue *fastjson.Value, jsonPath []string) er
 	default:
 		return fmt.Errorf("parse json type is invalid %s", v.String())
 
+	}
+
+	return nil
+}
+
+func parseValueByText(value reflect.Value, s string) error {
+	if !value.CanSet() {
+		return fmt.Errorf("parse %s value is not settable", s)
+	}
+
+	switch value.Kind() {
+	case reflect.Bool:
+		v, err := parseByteBool([]byte(s))
+		if err != nil {
+			return err
+		}
+
+		value.SetBool(v)
+	case reflect.String:
+		value.SetString(s)
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		v, err := strconv.ParseInt(s, 10, 64)
+		if err != nil {
+			return err
+		}
+		value.SetInt(v)
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		v, err := strconv.ParseUint(s, 10, 64)
+		if err != nil {
+			return err
+		}
+		value.SetUint(v)
+	case reflect.Float32, reflect.Float64:
+		v, err := strconv.ParseFloat(s, 64)
+		if err != nil {
+			return err
+		}
+		value.SetFloat(v)
+	case reflect.Interface:
+		// TODO need dynamic check the type but json never happen
+		// default support as string
+		value.Set(reflect.ValueOf(s))
 	}
 
 	return nil
@@ -257,19 +337,3 @@ func parseByteBool(b []byte) (bool, error) {
 	return false, fmt.Errorf("parse byte bool invalid %s", string(b))
 
 }
-
-//func getMapKey(v reflect.Value) string {
-//	map1 := make(map[reflect.Value]int)
-//	switch v.Kind() {
-//	case reflect.String:
-//		return v.String()
-//	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-//		jv := jsonValue.GetInt64(jsonPath...)
-//		v.SetInt(jv)
-//	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-//		jv := jsonValue.GetUint64(jsonPath...)
-//		v.SetUint(jv)
-//	case reflect.Float32, reflect.Float64:
-//
-//	}
-//}
