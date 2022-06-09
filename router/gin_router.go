@@ -10,32 +10,39 @@ import (
 )
 
 type GinRouter struct {
-	Engine *gin.Engine
-
-	wg      sync.WaitGroup
-	isClose bool
+	Engine     *gin.Engine
+	middleware map[string][]*Middleware
+	wg         sync.WaitGroup
+	isClose    bool
 }
 
 func NewGinRouter() *GinRouter {
 	g := &GinRouter{}
 	g.Engine = gin.New()
+	g.middleware = make(map[string][]*Middleware)
 	return g
 }
 
-func Midlleware(handler Handler, v interface{}) {
-
+type Middleware struct {
+	H Handler
+	V interface{}
 }
 
-func (r *GinRouter) Middleware(path string, handler Handler, v interface{}) {
-	map[]
+func (r *GinRouter) Middle(path string, handler Handler, v interface{}) {
+	if m, ok := r.middleware[path]; ok {
+		m = append(m, &Middleware{
+			handler,
+			v,
+		})
+		return
+	}
+
+	r.middleware[path] = []*Middleware{{handler, v}}
 }
 
 func (r *GinRouter) Handle(method, path string, handler Handler, v interface{}) {
 	vv := reflect.ValueOf(v)
 	vt := vv.Type().Elem()
-
-	var midHandle Handler
-	var midV interface{}
 
 	// TODO check v type must be struct
 	r.Engine.Handle(method, path, func(c *gin.Context) {
@@ -45,21 +52,22 @@ func (r *GinRouter) Handle(method, path string, handler Handler, v interface{}) 
 			return
 		}
 
-		res, err := midHandle(midV)
-		if err != nil {
-			c.JSON(500, nil)
-			return
-		}
-
-
-
 		// count connection num for close
 		r.wg.Add(1)
 		defer r.wg.Done()
-
 		req := NewGinRequest(c)
-		nv := reflect.New(vt)
 
+		middlewares := r.middleware[path]
+		for _, mid := range middlewares {
+			res, err := mid.H(mid.V)
+			if err != nil {
+				c.JSON(400, nil)
+				return
+			}
+
+		}
+
+		nv := reflect.New(vt)
 		err := tag.ParseRequest(req, nv.Elem())
 		if err != nil {
 			logger.StdLog.Error(err)
