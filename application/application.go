@@ -8,16 +8,15 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 )
 
 type Application struct {
 	config.Configer
-	router.V2Router
+	router.Router
 	TraceCloser io.Closer
 }
 
-func NewApplication(mode config.ModeType, srcPath string, r router.V2Router) (app *Application, err error) {
+func NewApplication(mode config.ModeType, r router.Router, srcPath ...string) (app *Application, err error) {
 	app = &Application{}
 	c := config.NewTomlConfig()
 	app.Configer = c
@@ -42,6 +41,11 @@ func NewApplication(mode config.ModeType, srcPath string, r router.V2Router) (ap
 	// route
 	app.V2Router = r
 
+	return
+}
+
+func (a *Application) Run() {
+
 	go func() {
 		sigs := make(chan os.Signal, 1)
 		signal.Notify(sigs, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGUSR1, syscall.SIGUSR2)
@@ -50,15 +54,13 @@ func NewApplication(mode config.ModeType, srcPath string, r router.V2Router) (ap
 			select {
 			case <-sigs:
 				logger.StdLog.Info("接受到了结束进程的信号")
-
-				time.Sleep(5 * time.Second)
-
-				// close trace instance
-
+				a.Close()
+				a.Wait(5)
 				os.Exit(0)
 			}
 		}
 
 	}()
-	return
+
+	a.Router.Run()
 }

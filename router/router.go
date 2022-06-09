@@ -1,44 +1,16 @@
 package router
 
-import (
-	"fmt"
-	"github.com/foreversmart/plate/logger"
-	"github.com/foreversmart/plate/middleware"
-
-	"github.com/gin-gonic/gin"
-)
-
-func init() {
-	// set gin release mode
-	gin.SetMode(gin.ReleaseMode)
-
+type Router interface {
+	// Handle register a new handle logic for given path, method and object v
+	// v must be a struct or struct pointer
+	Handle(method, path string, handler Handler, v interface{})
+	// Run attaches the router to a http.Server and starts listening and serving HTTP requests.
+	// Note: this method will block the calling goroutine indefinitely unless an error happens.
+	Run(addr ...string)
+	// Wait will wait all the connection logic close or timeout
+	Wait(timeout int)
+	// Close will close the router later connection will get failed
+	Close()
 }
 
-type Handler func(e *gin.Engine) *gin.Engine
-
-type Router struct {
-	Engine *gin.Engine
-	Config *ConfigType
-}
-
-func NewRouter(c *ConfigType, handle Handler) *Router {
-	engine := NewRoute(handle)
-	router := &Router{
-		Engine: engine,
-		Config: c,
-	}
-
-	return router
-}
-
-func (r *Router) Run() {
-	logger.StdLog.Infof("server started at %s:%d", r.Config.Host, r.Config.Port)
-	r.Engine.Run(fmt.Sprintf("%s:%d", r.Config.Host, r.Config.Port))
-}
-
-// NewRoute 初始化路由
-func NewRoute(handle Handler) *gin.Engine {
-	r := gin.New()
-	r.Use(middleware.Recovery())
-	return handle(r)
-}
+type Handler func(req interface{}) (resp interface{}, err error)

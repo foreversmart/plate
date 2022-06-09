@@ -30,7 +30,7 @@ func (b *Business) Get(req interface{}) (resp interface{}, err error) {
 }
 
 func TestNewGinRouter(t *testing.T) {
-	route := NewGinRouter(nil)
+	route := NewGinRouter()
 	route.Handle(http.MethodGet, "/", _Business.Get, &Request{})
 	route.Run("8080")
 }
