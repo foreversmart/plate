@@ -3,41 +3,17 @@ package tag
 import (
 	"fmt"
 	"github.com/valyala/fastjson"
-	"io/ioutil"
-	"net/http"
 	"reflect"
 	"strings"
 )
 
-type Requester interface {
-	Request() *http.Request
-	Params() map[string][]string // path param value
-}
-
 func ParseRequest(req Requester, v reflect.Value) error {
-	body, err := ioutil.ReadAll(req.Request().Body)
-	defer req.Request().Body.Close()
+	jsonValue, meta, err := fetchJsonAndMeta(req)
 	if err != nil {
 		return err
 	}
 
-	jsonValue, err := fastjson.Parse(string(body))
-	if err != nil {
-		return err
-	}
-
-	meta := make(map[string]map[string][]string)
-	meta[LocHeader] = req.Request().Header
-
-	formErr := req.Request().ParseForm()
-	// indicate is form request
-	if formErr == nil {
-		meta[LocForm] = req.Request().PostForm
-	}
-	meta[LocQuery] = req.Request().URL.Query()
-	meta[LocPath] = req.Params()
-
-	return Parse(v, jsonValue, nil, nil)
+	return Parse(v, jsonValue, meta, nil)
 }
 
 const (
@@ -63,7 +39,7 @@ const (
 	//
 	// meta must be golang basic type such as int, string, bool , float
 */
-func Parse(v reflect.Value, jsonValue *fastjson.Value, meta map[string]map[string]string, jsonPath []string) error {
+func Parse(v reflect.Value, jsonValue *fastjson.Value, meta map[string]map[string][]string, jsonPath []string) error {
 	if v.Kind() == reflect.Struct {
 		for i := 0; i < v.Type().NumField(); i++ {
 			field := v.Type().Field(i)
@@ -97,7 +73,8 @@ func Parse(v reflect.Value, jsonValue *fastjson.Value, meta map[string]map[strin
 					continue
 				}
 
-				parseValueByText(v.Field(i), metaValue)
+				// default parse the first value
+				parseValueByText(v.Field(i), metaValue[0])
 
 			}
 		}
@@ -106,7 +83,7 @@ func Parse(v reflect.Value, jsonValue *fastjson.Value, meta map[string]map[strin
 	return nil
 }
 
-func parseJson(v reflect.Value, jsonValue *fastjson.Value, meta map[string]map[string]string, jsonPath []string) error {
+func parseJson(v reflect.Value, jsonValue *fastjson.Value, meta map[string]map[string][]string, jsonPath []string) error {
 	switch v.Kind() {
 	case reflect.Struct:
 		Parse(v, jsonValue, meta, jsonPath)

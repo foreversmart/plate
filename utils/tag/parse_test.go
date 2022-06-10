@@ -28,6 +28,9 @@ type jsonStruct struct {
 	Array            []string               `json:"array" plate:"array"`
 	ArrayOb          []*jsonStruct          `json:"array_ob" plate:"array_ob"`
 	Child            *jsonStruct            `json:"child" plate:"child"`
+
+	ChildMid  *jsonStruct `json:"child_mid" plate:"child_mid.disss:mid"`
+	StringMid string      `json:"string_mid" plate:"auth_user:mid"`
 }
 
 var testJsonStr = `{
