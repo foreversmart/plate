@@ -51,9 +51,9 @@ func FetchField(parentTag reflect.StructTag, v reflect.Value) (f *Field, err err
 			return nil, err
 		}
 		f.Child = childView
-	case reflect.Array:
+	case reflect.Array, reflect.Slice:
 		f.isLeaf = false
-		childView, err := FetchViewFromMap(parentTag, f.value)
+		childView, err := FetchViewFromArray(parentTag, f.value)
 		if err != nil {
 			return nil, err
 		}

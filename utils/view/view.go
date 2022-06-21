@@ -77,7 +77,7 @@ func FetchViewFromMap(parentTag reflect.StructTag, v reflect.Value) (view *View,
 }
 
 func FetchViewFromArray(parentTag reflect.StructTag, v reflect.Value) (view *View, err error) {
-	if v.Kind() != reflect.Array {
+	if v.Kind() != reflect.Array && v.Kind() != reflect.Slice {
 		return nil, fmt.Errorf("fetchViewFromArray from %s", v.Kind().String())
 	}
 

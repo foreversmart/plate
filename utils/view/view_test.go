@@ -79,18 +79,18 @@ func TestFetchViewFromStruct(t *testing.T) {
 		case "FieldFloat":
 			assert.True(t, v.isLeaf)
 			assert.EqualValues(t, demo.FieldFloat, v.value.Float())
-			//case "FieldNest":
-			//	assert.True(t, v.isLeaf)
-			//	assert.EqualValues(t, demo.FieldNest, v.value.Int())
-			//case "FieldNestPointer":
-			//	assert.True(t, v.isLeaf)
-			//	assert.EqualValues(t, demo.FieldNestPointer, v.value.Int())
-			//case "FieldMap":
-			//	assert.True(t, v.isLeaf)
-			//	assert.EqualValues(t, demo.FieldMap, v.value.Int())
-			//case "FieldArray":
-			//	assert.True(t, v.isLeaf)
-			//	assert.EqualValues(t, demo.FieldArray, v.value.Int())
+		case "FieldNest":
+			assert.False(t, v.isLeaf)
+			assert.EqualValues(t, demo.FieldNest, v.value.Interface())
+		case "FieldNestPointer":
+			assert.False(t, v.isLeaf)
+			assert.EqualValues(t, *demo.FieldNestPointer, v.value.Interface())
+		case "FieldMap":
+			assert.False(t, v.isLeaf)
+			assert.EqualValues(t, demo.FieldMap, v.value.Interface())
+		case "FieldArray":
+			assert.False(t, v.isLeaf)
+			assert.EqualValues(t, demo.FieldArray, v.value.Interface())
 		}
 		fmt.Println(k, v)
 	}
