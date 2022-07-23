@@ -35,6 +35,6 @@ func (p *Parser) WithMid(resp interface{}) error {
 	return nil
 }
 
-func (p *Parser) Parse() {
-	return Parse(v, jsonValue, meta, nil)
+func (p *Parser) Parse(v reflect.Value) error {
+	return Parse(v, p.jsonValue, p.meta, nil)
 }

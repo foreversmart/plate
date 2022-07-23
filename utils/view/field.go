@@ -16,6 +16,7 @@ type Field struct {
 
 func FetchField(parentTag reflect.StructTag, v reflect.Value) (f *Field, err error) {
 	for v.Kind() == reflect.Ptr {
+
 		if v.IsNil() {
 			return nil, fmt.Errorf("cant fetch view from a nil object %s", v.Type().String())
 		}

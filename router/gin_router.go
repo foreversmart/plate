@@ -60,6 +60,7 @@ func (r *GinRouter) Handle(method, path string, handler Handler, v interface{}) 
 		middlewares := r.middleware[path]
 		for _, mid := range middlewares {
 			res, err := mid.H(mid.V)
+			v
 			if err != nil {
 				c.JSON(400, nil)
 				return
