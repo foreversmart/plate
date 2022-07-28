@@ -14,7 +14,7 @@ type Field struct {
 	Child *View
 }
 
-func FetchField(parentTag reflect.StructTag, v reflect.Value) (f *Field, err error) {
+func FetchField(parentTag reflect.StructTag, v reflect.Value, tagOpt ...string) (f *Field, err error) {
 	for v.Kind() == reflect.Ptr {
 
 		if v.IsNil() {
@@ -40,7 +40,7 @@ func FetchField(parentTag reflect.StructTag, v reflect.Value) (f *Field, err err
 	switch v.Kind() {
 	case reflect.Struct:
 		f.isLeaf = false
-		childView, err := FetchViewFromStruct(f.value)
+		childView, err := FetchViewFromStruct(f.value, tagOpt...)
 		if err != nil {
 			return nil, err
 		}

@@ -3,27 +3,12 @@ package view
 import (
 	"fmt"
 	"reflect"
-	"strings"
-)
-
-const (
-	TagOption = ","
 )
 
 // FetchViewFromStruct fetch view from reflect Value v
 // pass viewTags to decide which tag we use to fetch, if not passed we use the default type's name
 // return view and error
-func FetchViewFromStruct(v reflect.Value, viewTags ...string) (view *View, err error) {
-	var (
-		isSetViewTag bool
-		viewTag      string
-	)
-
-	if len(viewTags) > 0 {
-		viewTag = viewTags[0]
-		isSetViewTag = true
-	}
-
+func FetchViewFromStruct(v reflect.Value, tagOpt ...string) (view *View, err error) {
 	for v.Kind() == reflect.Ptr {
 		if v.IsNil() {
 			return nil, fmt.Errorf("cant fetch view from a nil object %s", v.Type().String())
@@ -46,24 +31,24 @@ func FetchViewFromStruct(v reflect.Value, viewTags ...string) (view *View, err e
 		Fields: make(map[string]*Field),
 	}
 
+	if len(tagOpt) > 0 {
+		view.Aspect = tagOpt[0]
+	}
+
 	fieldNum := v.Type().NumField()
 	for i := 0; i < fieldNum; i++ {
-		fieldType := v.Type().Field(i)
-		tag := fieldType.Tag
-
-		fieldTagName := fieldType.Name
-		if isSetViewTag {
-			tc := tag.Get(viewTag)
-			tcl := strings.Split(tc, ",")
-			fieldTagName = tcl[0]
+		sf := v.Type().Field(i)
+		name, isValid := fieldName(sf, tagOpt...)
+		if !isValid {
+			continue
 		}
 
-		field, fetchErr := FetchField(tag, v.Field(i))
+		field, fetchErr := FetchField(sf.Tag, v.Field(i), tagOpt...)
 		if fetchErr != nil {
 			return nil, fetchErr
 		}
 
-		view.Fields[fieldTagName] = field
+		view.Fields[name] = field
 	}
 
 	return
