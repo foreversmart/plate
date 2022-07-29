@@ -2,6 +2,7 @@ package view
 
 import (
 	"fmt"
+	"github.com/foreversmart/plate/utils/val"
 	"reflect"
 )
 
@@ -69,10 +70,15 @@ func FetchViewFromMap(parentTag reflect.StructTag, v reflect.Value) (view *View,
 		mapValue := v.MapIndex(key)
 		field, err := FetchField(parentTag, mapValue)
 		if err != nil {
-			// TODO
+			// TODO collect the errors
 		}
 
-		view.Fields[key.String()] = field
+		keyStr, err := val.ValueToString(key)
+		if err != nil {
+			// TODO collect the errors
+		}
+
+		view.Fields[keyStr] = field
 	}
 
 	return
