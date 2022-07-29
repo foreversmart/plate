@@ -8,6 +8,7 @@ package view
 
 import (
 	"fmt"
+	"github.com/foreversmart/plate/utils/val"
 	"reflect"
 	"strings"
 )
@@ -54,78 +55,8 @@ func (view *View) NewView(aspect string) *View {
 // use must parameter to determine ignore or occurs errors when not find the value.
 func (view *View) SetObjectValue(o interface{}, must bool, tagOpt ...string) (err error) {
 	v := reflect.ValueOf(o)
-	for v.Kind() == reflect.Ptr {
-		if v.IsNil() {
-			ot := v.Type().Elem()
-			v.Set(reflect.New(ot))
-		}
-
-		child := v.Elem()
-		// break loop pointer
-		if v == child {
-			break
-		}
-
-		v = child
-	}
-
-	if v.Kind() != reflect.Struct {
-		return fmt.Errorf("cant fetch view from type %s", v.Type().String())
-	}
-
-	fieldNum := v.Type().NumField()
-	for i := 0; i < fieldNum; i++ {
-		sf := v.Type().Field(i)
-
-		name, isValid := fieldName(sf, tagOpt...)
-		if !isValid {
-			continue
-		}
-
-		// select the right field in the view
-		field, ok := view.Fields[name]
-		// field not match
-		if !ok {
-			continue
-		}
-
-		fv := v.Field(i)
-		if field.isLeaf {
-			SetValue(fv, field.value)
-			continue
-		}
-
-		fv = settableValue(fv)
-		switch fv.Kind() {
-		case reflect.Struct:
-		case reflect.Map:
-		case reflect.Array:
-
-		}
-
-		field.Child.SetStructValue(v.Field(i), must, tagOpt...)
-	}
-
-	return
-}
-
-func settableValue(v reflect.Value) reflect.Value {
-	for v.Kind() == reflect.Ptr {
-		if v.IsNil() {
-			ot := v.Type().Elem()
-			v.Set(reflect.New(ot))
-		}
-
-		child := v.Elem()
-		// break loop pointer
-		if v == child {
-			break
-		}
-
-		v = child
-	}
-
-	return v
+	v = settableValue(v)
+	return view.SetStructValue(v, must, tagOpt...)
 }
 
 func (view *View) SetStructValue(v reflect.Value, must bool, tagOpt ...string) (err error) {
@@ -147,46 +78,74 @@ func (view *View) SetStructValue(v reflect.Value, must bool, tagOpt ...string) (
 			continue
 		}
 
+		fv := v.Field(i)
 		if field.isLeaf {
-			v.Field(i).Set(field.value)
+			SetValue(fv, field.value)
 			continue
 		}
 
-		field.Child.SetStructValue(v.Field(i), must, tagOpt...)
+		fv = settableValue(fv)
+		switch fv.Kind() {
+		case reflect.Struct:
+			err = field.Child.SetStructValue(fv, must, tagOpt...)
+		case reflect.Map:
+			err = field.Child.SetMapValue(fv, must, tagOpt...)
+		case reflect.Array:
+			err = field.Child.SetStructValue(fv, must, tagOpt...)
+
+		}
+
 	}
 
 	return
 }
 
-func SetValue(obV, dataV reflect.Value) (err error) {
-	for obV.Kind() == reflect.Ptr {
-		if obV.IsNil() {
-			// TODO optimize
-			ot := obV.Type().Elem()
-			obV.Set(reflect.New(ot))
-			obV.Elem().Set(dataV)
-			return
-		}
-
-		child := obV.Elem()
-		// break loop pointer
-		if obV == child {
-			break
-		}
-
-		obV = child
+// SetMapValue set view's value to v. v is a map or occurs type not much error
+func (view *View) SetMapValue(v reflect.Value, must bool, tagOpt ...string) error {
+	if v.Kind() != reflect.Map {
+		return fmt.Errorf("cant set view type %s only support map kind", v.Type().String())
 	}
 
-	if obV.Type() == dataV.Type() {
-		obV.Set(dataV)
+	// when map is nil make a new map
+	if v.IsNil() {
+		ot := v.Type()
+		v.Set(reflect.MakeMap(ot))
+	}
+
+	keyType := v.Type().Key()
+	valueType := v.Type().Elem()
+
+	for key, value := range view.Fields {
+
+		keyValue, err := val.NewValueByString(key, keyType)
+		if err != nil {
+			return err
+		}
+
+		if value.isLeaf {
+			v.SetMapIndex(keyValue, value.value)
+			continue
+		}
+
+		fv = settableValue(fv)
+
+		switch fv.Kind() {
+		case reflect.Struct:
+			err = value.Child.SetStructValue(fv, must, tagOpt...)
+		case reflect.Map:
+			err = value.Child.SetMapValue(fv, must, tagOpt...)
+		case reflect.Array:
+			err = value.Child.SetStructValue(fv, must, tagOpt...)
+
+		}
+
 	}
 
 	return nil
 }
 
-/*
-A
-viewMysql viewBson viewEs viewRedis viewMem viewGraph viewStruct view Raw
-viewMysql.Set(b)
+func (view *View) SetArrayValue(v reflect.Value, must string, tagOpt ...string) error {
 
-*/
+	return nil
+
+}

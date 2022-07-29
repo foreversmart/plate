@@ -2,9 +2,11 @@ package tag
 
 import (
 	"fmt"
-	"github.com/valyala/fastjson"
 	"reflect"
 	"strings"
+
+	"github.com/foreversmart/plate/utils/val"
+	"github.com/valyala/fastjson"
 )
 
 func ParseRequest(req Requester, v reflect.Value) error {
@@ -74,7 +76,7 @@ func Parse(v reflect.Value, jsonValue *fastjson.Value, meta map[string]map[strin
 				}
 
 				// default parse the first value
-				parseValueByText(v.Field(i), metaValue[0])
+				val.SetValueByString(v.Field(i), metaValue[0])
 
 			}
 		}
@@ -136,7 +138,7 @@ func parseJson(v reflect.Value, jsonValue *fastjson.Value, meta map[string]map[s
 		errStr := ""
 		// visit map each key and value and parse
 		jsonOb.Visit(func(key []byte, childJsonValue *fastjson.Value) {
-			mapKey, valueErr := getValueByType(key, mapKeyType)
+			mapKey, valueErr := val.NewValueByBytes(key, mapKeyType)
 			if valueErr != nil {
 				errStr = errStr + fmt.Sprintf("get map key %s value type with error %v |", string(key), valueErr.Error())
 				return

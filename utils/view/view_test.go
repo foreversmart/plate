@@ -35,7 +35,14 @@ func TestView_SetObjectValue(t *testing.T) {
 
 	result := &TestDemo{}
 
-	view.SetObjectValue(result, true)
+	err = view.SetObjectValue(result, true)
+	assert.Nil(t, err)
+
 	jStr, _ := json.Marshal(result)
 	fmt.Println(string(jStr))
+
+	jStr, _ = json.Marshal(demo)
+	fmt.Println(string(jStr))
+
+	fmt.Println(result.FieldIntMap[1111])
 }
