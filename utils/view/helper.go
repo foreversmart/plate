@@ -48,18 +48,3 @@ func settableValue(v reflect.Value) reflect.Value {
 
 	return v
 }
-
-func toString(v reflect.Value) string {
-
-	return ""
-
-}
-
-func isSupportString(v reflect.Value) bool {
-	switch v.Kind() {
-	case reflect.String, reflect.Int, reflect.Int8:
-
-	}
-
-	return false
-}

@@ -127,17 +127,19 @@ func (view *View) SetMapValue(v reflect.Value, must bool, tagOpt ...string) erro
 			continue
 		}
 
-		fv = settableValue(fv)
+		valueValue := reflect.New(valueType)
+		valueValue = settableValue(valueValue)
 
-		switch fv.Kind() {
+		switch valueValue.Kind() {
 		case reflect.Struct:
-			err = value.Child.SetStructValue(fv, must, tagOpt...)
+			err = value.Child.SetStructValue(valueValue, must, tagOpt...)
 		case reflect.Map:
-			err = value.Child.SetMapValue(fv, must, tagOpt...)
+			err = value.Child.SetMapValue(valueValue, must, tagOpt...)
 		case reflect.Array:
-			err = value.Child.SetStructValue(fv, must, tagOpt...)
-
+			err = value.Child.SetStructValue(valueValue, must, tagOpt...)
 		}
+
+		v.SetMapIndex(keyValue, valueValue)
 
 	}
 
