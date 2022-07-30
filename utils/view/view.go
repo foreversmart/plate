@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"github.com/foreversmart/plate/utils/val"
 	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -90,8 +91,8 @@ func (view *View) SetStructValue(v reflect.Value, must bool, tagOpt ...string) (
 			err = field.Child.SetStructValue(fv, must, tagOpt...)
 		case reflect.Map:
 			err = field.Child.SetMapValue(fv, must, tagOpt...)
-		case reflect.Array:
-			err = field.Child.SetStructValue(fv, must, tagOpt...)
+		case reflect.Array, reflect.Slice:
+			err = field.Child.SetArrayValue(fv, must, tagOpt...)
 
 		}
 
@@ -135,8 +136,8 @@ func (view *View) SetMapValue(v reflect.Value, must bool, tagOpt ...string) erro
 			err = value.Child.SetStructValue(valueValue, must, tagOpt...)
 		case reflect.Map:
 			err = value.Child.SetMapValue(valueValue, must, tagOpt...)
-		case reflect.Array:
-			err = value.Child.SetStructValue(valueValue, must, tagOpt...)
+		case reflect.Array, reflect.Slice:
+			err = value.Child.SetArrayValue(valueValue, must, tagOpt...)
 		}
 
 		v.SetMapIndex(keyValue, valueValue)
@@ -146,8 +147,37 @@ func (view *View) SetMapValue(v reflect.Value, must bool, tagOpt ...string) erro
 	return nil
 }
 
-func (view *View) SetArrayValue(v reflect.Value, must string, tagOpt ...string) error {
+func (view *View) SetArrayValue(v reflect.Value, must bool, tagOpt ...string) (err error) {
+	if v.Kind() != reflect.Array && v.Kind() != reflect.Slice {
+		return fmt.Errorf("cant set view type %s only support array or slice kind", v.Kind().String())
+	}
 
-	return nil
+	// when array is nil make a new array
+	if v.IsNil() {
+		ot := v.Type()
+		v.Set(reflect.MakeSlice(ot, len(view.Fields), len(view.Fields)))
+	}
+
+	for key, value := range view.Fields {
+		arrayIndex, _ := strconv.ParseInt(key, 10, 64)
+
+		if value.isLeaf {
+			v.Index(int(arrayIndex)).Set(value.value)
+			continue
+		}
+
+		arrayValue := settableValue(v.Index(int(arrayIndex)))
+
+		switch arrayValue.Kind() {
+		case reflect.Struct:
+			err = value.Child.SetStructValue(arrayValue, must, tagOpt...)
+		case reflect.Map:
+			err = value.Child.SetMapValue(arrayValue, must, tagOpt...)
+		case reflect.Array, reflect.Slice:
+			err = value.Child.SetArrayValue(arrayValue, must, tagOpt...)
+		}
+	}
+
+	return
 
 }

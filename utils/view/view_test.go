@@ -38,6 +38,8 @@ func TestView_SetObjectValue(t *testing.T) {
 	err = view.SetObjectValue(result, true)
 	assert.Nil(t, err)
 
+	assert.EqualValues(t, demo, result)
+
 	jStr, _ := json.Marshal(result)
 	fmt.Println(string(jStr))
 
