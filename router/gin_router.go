@@ -2,7 +2,7 @@ package router
 
 import (
 	"github.com/foreversmart/plate/logger"
-	"github.com/foreversmart/plate/utils/tag"
+	"github.com/foreversmart/plate/utils/request"
 	"github.com/gin-gonic/gin"
 	"reflect"
 	"sync"
@@ -20,6 +20,7 @@ type GinRouter struct {
 func NewGinRouter() *GinRouter {
 	g := &GinRouter{}
 	g.Engine = gin.New()
+	g.path = "/"
 	g.middleware = make([]*Middleware, 0, 5)
 	return g
 }
@@ -40,16 +41,11 @@ type Middleware struct {
 	V interface{}
 }
 
-func (r *GinRouter) Middle(path string, handler Handler, v interface{}) {
-	if m, ok := r.middleware[path]; ok {
-		m = append(m, &Middleware{
-			handler,
-			v,
-		})
-		return
-	}
-
-	r.middleware[path] = []*Middleware{{handler, v}}
+func (r *GinRouter) AddMiddle(handler Handler, v interface{}) {
+	r.middleware = append(r.middleware, &Middleware{
+		handler,
+		v,
+	})
 }
 
 func (r *GinRouter) Handle(method, path string, handler Handler, v interface{}) {
@@ -70,15 +66,14 @@ func (r *GinRouter) Handle(method, path string, handler Handler, v interface{}) 
 		req := NewGinRequest(c)
 
 		nv := reflect.New(vt)
-		err := tag.ParseRequest(req, nv.Elem())
+		err := request.ParseRequest(req, nv.Elem())
 		if err != nil {
 			logger.StdLog.Error(err)
 			c.JSON(400, err)
 			return
 		}
 
-		middlewares := r.middleware[path]
-		for _, mid := range middlewares {
+		for _, mid := range r.middleware {
 			res, err := mid.H(mid.V)
 			v
 			if err != nil {
