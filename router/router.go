@@ -15,3 +15,7 @@ type Router interface {
 }
 
 type Handler func(req interface{}) (resp interface{}, err error)
+
+func mid(req interface{}) (resp interface{}, err error) {
+
+}

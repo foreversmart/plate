@@ -11,7 +11,8 @@ import (
 
 type GinRouter struct {
 	Engine     *gin.Engine
-	middleware map[string][]*Middleware
+	middleware []*Middleware
+	path       string
 	wg         sync.WaitGroup
 	isClose    bool
 }
@@ -19,8 +20,19 @@ type GinRouter struct {
 func NewGinRouter() *GinRouter {
 	g := &GinRouter{}
 	g.Engine = gin.New()
-	g.middleware = make(map[string][]*Middleware)
+	g.middleware = make([]*Middleware, 0, 5)
 	return g
+}
+
+func (r *GinRouter) Group(relativePath string) *GinRouter {
+	ng := &GinRouter{
+		Engine: r.Engine,
+		path:   joinPaths(r.path, relativePath),
+	}
+
+	copy(ng.middleware, r.middleware)
+
+	return ng
 }
 
 type Middleware struct {
@@ -57,6 +69,14 @@ func (r *GinRouter) Handle(method, path string, handler Handler, v interface{}) 
 		defer r.wg.Done()
 		req := NewGinRequest(c)
 
+		nv := reflect.New(vt)
+		err := tag.ParseRequest(req, nv.Elem())
+		if err != nil {
+			logger.StdLog.Error(err)
+			c.JSON(400, err)
+			return
+		}
+
 		middlewares := r.middleware[path]
 		for _, mid := range middlewares {
 			res, err := mid.H(mid.V)
@@ -68,16 +88,7 @@ func (r *GinRouter) Handle(method, path string, handler Handler, v interface{}) 
 
 		}
 
-		nv := reflect.New(vt)
-		err := tag.ParseRequest(req, nv.Elem())
-		if err != nil {
-			logger.StdLog.Error(err)
-			c.JSON(400, err)
-			return
-		}
-
 		// do before
-
 		resp, _ := handler(nv.Interface())
 
 		// do after
