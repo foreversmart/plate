@@ -1,36 +1,35 @@
 package router
 
 import (
-	"math/rand"
+	"github.com/foreversmart/plate/client"
+	"github.com/foreversmart/plate/logger"
+	"github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"
+	"time"
 )
-
-type Business struct {
-	//Get string `plage:"get:user/"`
-}
-
-type Request struct {
-	A int `json:"a"`
-}
-
-type Resp struct {
-	Out int `json:"out"`
-}
-
-var (
-	_Business *Business
-)
-
-func (b *Business) Get(req interface{}) (resp interface{}, err error) {
-	r := req.(Request)
-	res := &Resp{}
-	res.Out = r.A + 10 + rand.Int()
-	return res, nil
-}
 
 func TestNewGinRouter(t *testing.T) {
+	uid := "123456"
+
 	route := NewGinRouter()
-	route.Handle(http.MethodGet, "/", _Business.Get, &Request{})
-	route.Run("8080")
+	route.Handle(http.MethodPost, "/price", _Business.Price, &PriceReq{})
+	route.AddMiddle(UserMiddleware, &UserReq{})
+	go route.Run(":8080")
+
+	time.Sleep(time.Second)
+
+	req := &PriceReq{
+		ProductID: 5,
+	}
+	var (
+		resp *PriceResp
+	)
+
+	header := make(map[string][]string)
+	header["uid"] = []string{uid}
+	err := client.Call(http.MethodPost, "http://127.0.0.1:8080/price", req, &resp, header, logger.StdLog)
+	assert.Nil(t, err)
+	assert.Equal(t, req.ProductID*10, resp.Price)
+	assert.Equal(t, "user:"+uid, resp.UserName)
 }
