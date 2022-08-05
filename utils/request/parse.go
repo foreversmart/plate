@@ -2,6 +2,7 @@ package request
 
 import (
 	"fmt"
+	"github.com/foreversmart/plate/utils/view"
 	"reflect"
 	"strings"
 
@@ -9,13 +10,15 @@ import (
 	"github.com/valyala/fastjson"
 )
 
+// ParseRequest parse req Requester into a value v
+// v must be struct value
 func ParseRequest(req Requester, v reflect.Value) error {
 	jsonValue, meta, err := fetchJsonAndMeta(req)
 	if err != nil {
 		return err
 	}
 
-	return Parse(v, jsonValue, meta, nil)
+	return parse(v, jsonValue, meta, nil)
 }
 
 const (
@@ -28,6 +31,7 @@ const (
 	LocPath   = "path"
 	LocForm   = "form"
 	LocQuery  = "query"
+	LocMid    = "mid"
 )
 
 /*
@@ -37,11 +41,44 @@ const (
 		B string `plate:"b,header"`
 		B string `plate:"b,path"`
 		B string `plate:"b,form"`
+		B string `plate:"b,mid"`
+	}
+
+	type Mid struct {
+		B string `mid:"b"`
 	}
 	//
 	// meta must be golang basic type such as int, string, bool , float
 */
-func Parse(v reflect.Value, jsonValue *fastjson.Value, meta map[string]map[string][]string, jsonPath []string) error {
+func Parse(v reflect.Value, jsonValue *fastjson.Value, meta map[string]map[string][]string, mid *view.View, jsonPath []string) (err error) {
+	err = parse(v, jsonValue, meta, jsonPath)
+	if err != nil {
+		return err
+	}
+
+	// set middleware value
+	err = mid.SetStructValue(v, true, TagNameFetch, LocMid)
+
+	return
+}
+
+/*
+	parse: parse a json value and meta to struct reflect value
+	type A struct {
+		B string `plate:"b,body" check:"int>10"`
+		B string `plate:"b,header"`
+		B string `plate:"b,path"`
+		B string `plate:"b,form"`
+		B string `plate:"b,mid"`
+	}
+
+	type Mid struct {
+		B string `mid:"b"`
+	}
+	//
+	// meta must be golang basic type such as int, string, bool , float
+*/
+func parse(v reflect.Value, jsonValue *fastjson.Value, meta map[string]map[string][]string, jsonPath []string) error {
 	if v.Kind() == reflect.Struct {
 		for i := 0; i < v.Type().NumField(); i++ {
 			field := v.Type().Field(i)
@@ -54,17 +91,18 @@ func Parse(v reflect.Value, jsonValue *fastjson.Value, meta map[string]map[strin
 				loc = items[1]
 			}
 
-			// json path
-			newJsonPath := append(jsonPath, name)
-			newJsonExist := jsonValue.Exists(newJsonPath...)
-			if !newJsonExist {
-				continue
-			}
-
 			switch loc {
-			case "body":
+			case LocBody:
+				// json path
+				newJsonPath := append(jsonPath, name)
+				newJsonExist := jsonValue.Exists(newJsonPath...)
+				if !newJsonExist {
+					continue
+				}
+
 				parseJson(v.Field(i), jsonValue, meta, newJsonPath)
 			default:
+
 				metaMap, ok := meta[loc]
 				if !ok {
 					continue
@@ -76,7 +114,10 @@ func Parse(v reflect.Value, jsonValue *fastjson.Value, meta map[string]map[strin
 				}
 
 				// default parse the first value
-				val.SetValueByString(v.Field(i), metaValue[0])
+				err := val.SetValueByString(v.Field(i), metaValue[0])
+				if err != nil {
+					return err
+				}
 
 			}
 		}
@@ -88,7 +129,7 @@ func Parse(v reflect.Value, jsonValue *fastjson.Value, meta map[string]map[strin
 func parseJson(v reflect.Value, jsonValue *fastjson.Value, meta map[string]map[string][]string, jsonPath []string) error {
 	switch v.Kind() {
 	case reflect.Struct:
-		Parse(v, jsonValue, meta, jsonPath)
+		parse(v, jsonValue, meta, jsonPath)
 	case reflect.Slice, reflect.Array:
 		vt := v.Type()
 		// fastjson array value

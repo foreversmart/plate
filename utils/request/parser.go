@@ -1,7 +1,7 @@
 package request
 
 import (
-	"encoding/json"
+	"github.com/foreversmart/plate/utils/view"
 	"github.com/valyala/fastjson"
 	"reflect"
 )
@@ -9,32 +9,31 @@ import (
 type Parser struct {
 	jsonValue *fastjson.Value
 	meta      map[string]map[string][]string
-	mid       map[string]*fastjson.Value
+	mid       *view.View
 }
 
 func NewParser(req Requester) (p *Parser, err error) {
 	p = &Parser{}
 	p.jsonValue, p.meta, err = fetchJsonAndMeta(req)
-	p.mid = make(map[string]*fastjson.Value)
 	return
 }
 
 func (p *Parser) WithMid(resp interface{}) error {
-	t := reflect.TypeOf(resp).String()
-	jsonStr, err := json.Marshal(resp)
+	v, err := view.FetchViewFromStruct(reflect.ValueOf(resp), TagNameFetch, LocMid)
 	if err != nil {
 		return err
 	}
 
-	jsonValue, err := fastjson.ParseBytes(jsonStr)
-	if err != nil {
-		return err
+	if p.mid == nil {
+		p.mid = v
+		return nil
 	}
 
-	p.mid[t] = jsonValue
+	p.mid.MergeWithNew(v)
+
 	return nil
 }
 
 func (p *Parser) Parse(v reflect.Value) error {
-	return Parse(v, p.jsonValue, p.meta, nil)
+	return Parse(v, p.jsonValue, p.meta, p.mid, nil)
 }
