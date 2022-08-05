@@ -36,11 +36,6 @@ func (r *GinRouter) Group(relativePath string) *GinRouter {
 	return ng
 }
 
-type Middleware struct {
-	H Handler
-	V interface{}
-}
-
 func (r *GinRouter) AddMiddle(handler Handler, v interface{}) {
 	r.middleware = append(r.middleware, &Middleware{
 		handler,
@@ -66,7 +61,7 @@ func (r *GinRouter) Handle(method, path string, handler Handler, v interface{}) 
 		req := NewGinRequest(c)
 
 		nv := reflect.New(vt)
-		err := request.ParseRequest(req, nv.Elem())
+		parser, err := request.NewParser(req)
 		if err != nil {
 			logger.StdLog.Error(err)
 			c.JSON(400, err)
@@ -74,13 +69,32 @@ func (r *GinRouter) Handle(method, path string, handler Handler, v interface{}) 
 		}
 
 		for _, mid := range r.middleware {
-			res, err := mid.H(mid.V)
-			v
+			mv := reflect.ValueOf(mid.V)
+			mt := mv.Type().Elem()
+			nmv := reflect.New(mt)
+			err = parser.Parse(nmv.Elem())
+
 			if err != nil {
+				logger.StdLog.Error(err)
 				c.JSON(400, nil)
 				return
 			}
 
+			res, err := mid.H(nmv.Interface())
+			if err != nil {
+				logger.StdLog.Error(err)
+				c.JSON(400, nil)
+				return
+			}
+
+			parser.WithMid(res)
+		}
+
+		err = parser.Parse(nv.Elem())
+		if err != nil {
+			logger.StdLog.Error(err)
+			c.JSON(400, err)
+			return
 		}
 
 		// do before
