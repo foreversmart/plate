@@ -51,6 +51,12 @@ func (view *View) NewView(aspect string) *View {
 	return newView
 }
 
+func (v *View) MergeWithNew(nv *View) {
+	for k, f := range nv.Fields {
+		v.Fields[k] = f
+	}
+}
+
 // SetObjectValue set the object o value by the view value.
 // use tag to select o aspect to set value
 // use must parameter to determine ignore or occurs errors when not find the value.
