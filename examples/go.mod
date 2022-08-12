@@ -2,12 +2,12 @@ module example
 
 go 1.18
 
-require (
-	github.com/foreversmart/plate v0.0.0-20220529031517-18bdc8d4cd25
-	github.com/gin-gonic/gin v1.7.7
-)
+//github.com/foreversmart/plate v0.0.0-20220529031517-18bdc8d4cd25
+require github.com/gin-gonic/gin v1.7.7
 
-// replace github.com/foreversmart/plate => ../../plate
+replace github.com/foreversmart/plate => ../../plate
+
+require github.com/foreversmart/plate v0.0.0-00010101000000-000000000000
 
 require (
 	github.com/BurntSushi/toml v1.1.0 // indirect
@@ -23,6 +23,7 @@ require (
 	github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/ugorji/go/codec v1.1.7 // indirect
+	github.com/valyala/fastjson v1.6.3 // indirect
 	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e // indirect
 	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
 	gopkg.in/yaml.v2 v2.2.8 // indirect

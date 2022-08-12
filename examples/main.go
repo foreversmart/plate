@@ -3,24 +3,27 @@ package main
 import (
 	"github.com/foreversmart/plate/application"
 	"github.com/foreversmart/plate/config"
-	"github.com/gin-gonic/gin"
-	"net/http"
 	"os"
 )
 
 func main() {
 	pwd, _ := os.Getwd()
-	app, err := application.NewApplication(config.Development, pwd, func(e *gin.Engine) *gin.Engine {
-		e.GET("ping", func(c *gin.Context) {
-			c.JSON(http.StatusOK, "pong")
-		})
-
-		return e
-	})
-
+	app, err := application.NewApplication(config.Development, pwd)
 	if err != nil {
 		panic(err)
 	}
+
+	type Req struct {
+	}
+
+	type Resp struct {
+		Res string `json:"res"`
+	}
+	app.Route().Get("ping", func(r interface{}) (resp interface{}, err error) {
+		return &Resp{
+			Res: "pong",
+		}, nil
+	}, Req{})
 
 	app.Run()
 }
