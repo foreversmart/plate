@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/BurntSushi/toml"
 	"io/ioutil"
 	"os"
@@ -24,6 +25,7 @@ func NewTomlConfig() *TomlConfig {
 func (c *TomlConfig) Init(mode ModeType, path, configName, host, meta string) error {
 	content, err := c.configContent(mode, path, configName)
 	if err != nil {
+		fmt.Println(err)
 		return err
 	}
 
@@ -68,7 +70,7 @@ func (c *TomlConfig) findModeConfigFilePath(mode ModeType, srcPath, configName s
 	// adjust srcPath
 	srcPath = path.Clean(srcPath)
 
-	filename := "config.ini"
+	filename := "config"
 	if configName != "" {
 		filename = configName
 	}
@@ -76,18 +78,21 @@ func (c *TomlConfig) findModeConfigFilePath(mode ModeType, srcPath, configName s
 	switch mode {
 	case Development:
 		// try application.development.json
-		filename = "config.development.ini"
+		filename = filename + ".development"
 
 	case Test:
 		// try application.test.json
-		filename = "config.test.ini"
+		filename = filename + ".test"
 
 	case Production:
 		// skip
-
 	}
 
+	filename = filename + ".ini"
+
 	file := path.Join(srcPath, "config", filename)
+
+	// if mode config file not exist fail back to read standard config file
 	if _, err := os.Stat(file); os.IsNotExist(err) {
 		file = path.Join(srcPath, "config", "config.ini")
 	}
