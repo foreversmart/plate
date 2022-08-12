@@ -1,4 +1,4 @@
-package router
+package route
 
 // Middleware middleware is pre handler for common logic for concrete logic
 // H is the middleware handler, handler's resp tag `plate:"x,mid"`

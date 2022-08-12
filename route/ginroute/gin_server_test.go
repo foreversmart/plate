@@ -1,4 +1,4 @@
-package router
+package ginroute
 
 import (
 	"github.com/foreversmart/plate/client"
@@ -9,13 +9,14 @@ import (
 	"time"
 )
 
-func TestNewGinRouter(t *testing.T) {
+func TestNewGinServer(t *testing.T) {
 	uid := "123456"
 
-	route := NewGinRouter()
+	server := NewGinServer()
+	route := server.Route()
 	route.Handle(http.MethodPost, "/price", _Business.Price, &PriceReq{})
 	route.AddMiddle(UserMiddleware, &UserReq{})
-	go route.Run(":8080")
+	go server.Run(":8080")
 
 	time.Sleep(time.Second)
 

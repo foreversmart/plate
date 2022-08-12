@@ -1,4 +1,4 @@
-package router
+package ginroute
 
 import (
 	"github.com/gin-gonic/gin"
