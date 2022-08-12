@@ -62,7 +62,7 @@ func (v *View) MergeWithNew(nv *View) {
 // use must parameter to determine ignore or occurs errors when not find the value.
 func (view *View) SetObjectValue(o interface{}, must bool, tagOpt ...string) (err error) {
 	v := reflect.ValueOf(o)
-	v = settableValue(v)
+	v = val.SettableValue(v)
 	return view.SetStructValue(v, must, tagOpt...)
 }
 
@@ -91,7 +91,7 @@ func (view *View) SetStructValue(v reflect.Value, must bool, tagOpt ...string) (
 			continue
 		}
 
-		fv = settableValue(fv)
+		fv = val.SettableValue(fv)
 		switch fv.Kind() {
 		case reflect.Struct:
 			err = field.Child.SetStructValue(fv, must, tagOpt...)
@@ -135,7 +135,7 @@ func (view *View) SetMapValue(v reflect.Value, must bool, tagOpt ...string) erro
 		}
 
 		valueValue := reflect.New(valueType)
-		valueValue = settableValue(valueValue)
+		valueValue = val.SettableValue(valueValue)
 
 		switch valueValue.Kind() {
 		case reflect.Struct:
@@ -172,7 +172,7 @@ func (view *View) SetArrayValue(v reflect.Value, must bool, tagOpt ...string) (e
 			continue
 		}
 
-		arrayValue := settableValue(v.Index(int(arrayIndex)))
+		arrayValue := val.SettableValue(v.Index(int(arrayIndex)))
 
 		switch arrayValue.Kind() {
 		case reflect.Struct:

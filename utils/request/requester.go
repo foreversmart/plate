@@ -20,9 +20,11 @@ func fetchJsonAndMeta(req Requester) (jsonValue *fastjson.Value, meta map[string
 		return nil, nil, err
 	}
 
-	jsonValue, err = fastjson.Parse(string(body))
-	if err != nil {
-		return nil, nil, err
+	if len(body) > 0 {
+		jsonValue, err = fastjson.Parse(string(body))
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	meta = make(map[string]map[string][]string)

@@ -29,22 +29,3 @@ func SetValue(obV, dataV reflect.Value) (err error) {
 
 	return nil
 }
-
-func settableValue(v reflect.Value) reflect.Value {
-	for v.Kind() == reflect.Ptr {
-		if v.IsNil() {
-			ot := v.Type().Elem()
-			v.Set(reflect.New(ot))
-		}
-
-		child := v.Elem()
-		// break loop pointer
-		if v == child {
-			break
-		}
-
-		v = child
-	}
-
-	return v
-}
