@@ -1,15 +1,13 @@
-package model
+package mongo
 
 import (
 	"github.com/foreversmart/mgo"
-	"github.com/foreversmart/plate/config"
 	"github.com/foreversmart/plate/logger"
 	"sync"
 	"time"
 )
 
 const (
-	MongoRunMode     = "Strong"
 	MongoPoolMax     = 4096
 	MongoSyncTimeout = 5
 )
@@ -19,12 +17,12 @@ type Model struct {
 	session    *mgo.Session
 	collection *mgo.Collection
 
-	config  *config.ModelConfig
+	config  *Config
 	logger  logger.Logger
 	indexes map[string]bool
 }
 
-func NewModel(config *config.ModelConfig, logger logger.Logger) *Model {
+func NewModel(config *Config, logger logger.Logger) *Model {
 	dsn := "mongodb://"
 	if config.User != "" && config.Passwd != "" {
 		dsn += config.User + ":" + config.Passwd + "@"
@@ -36,7 +34,7 @@ func NewModel(config *config.ModelConfig, logger logger.Logger) *Model {
 
 	session, err := mgo.Dial(dsn)
 	if err != nil {
-		logger.Panic(err.Error())
+		logger.Panic(err.Error(), "dsn:", dsn)
 	}
 
 	if err := session.Ping(); err != nil {
@@ -110,7 +108,7 @@ func (model *Model) C(name string) *Model {
 	return copiedDB
 }
 
-func (model *Model) Config() *config.ModelConfig {
+func (model *Model) Config() *Config {
 	return model.config
 }
 

@@ -1,6 +1,8 @@
-package model
+package mongo
 
-import "github.com/foreversmart/plate/model/errors"
+import (
+	"github.com/foreversmart/plate/model/mongo/errors"
+)
 
 // 页面参数
 const (

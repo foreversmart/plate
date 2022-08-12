@@ -1,10 +1,7 @@
-package config
+package mongo
 
-// LogExtrConfig 日志属性
-
-
-// ModelConfig db配置
-type ModelConfig struct {
+// Config db配置
+type Config struct {
 	Host     string `toml:"host"`
 	User     string `toml:"user"`
 	Passwd   string `toml:"passwd"`
@@ -15,7 +12,7 @@ type ModelConfig struct {
 }
 
 // Copy 拷贝配置
-func (c *ModelConfig) Copy() *ModelConfig {
+func (c *Config) Copy() *Config {
 	config := *c
 	return &config
 }
