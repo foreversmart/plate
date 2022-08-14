@@ -27,3 +27,11 @@ func BadRequestError(msg string) *Error {
 		Message: msg,
 	}
 }
+
+func UnHandleError(msg string) *Error {
+	return &Error{
+		Code:    http.StatusInternalServerError,
+		Name:    "UnHandleError",
+		Message: msg,
+	}
+}

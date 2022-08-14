@@ -3,7 +3,8 @@ package application
 import (
 	"github.com/foreversmart/plate/config"
 	"github.com/foreversmart/plate/logger"
-	"github.com/foreversmart/plate/router"
+	"github.com/foreversmart/plate/route"
+	"github.com/foreversmart/plate/route/ginroute"
 	"io"
 	"os"
 	"os/signal"
@@ -12,17 +13,24 @@ import (
 
 type Application struct {
 	config.Configer
-	router.Router
+	route.Server
 	TraceCloser io.Closer
 }
 
-func NewApplication(mode config.ModeType, r router.Router, srcPath ...string) (app *Application, err error) {
+func NewApplication(mode config.ModeType, srcPaths ...string) (app *Application, err error) {
 	app = &Application{}
 	c := config.NewTomlConfig()
 	app.Configer = c
 
-	app.Register("server", router.Config)
+	//app.Register("server", route.Config)
 	app.Register("log", &logger.Config)
+
+	srcPath := ""
+	if len(srcPaths) > 0 {
+		srcPath = srcPaths[0]
+	} else {
+		srcPath, _ = os.Getwd()
+	}
 
 	err = c.Init(mode, srcPath, "", "", "")
 	if err != nil {
@@ -39,7 +47,7 @@ func NewApplication(mode config.ModeType, r router.Router, srcPath ...string) (a
 	logger.StdLog.Debug("std logger setup completed.")
 
 	// route
-	app.V2Router = r
+	app.Server = ginroute.NewGinServer()
 
 	return
 }
@@ -62,5 +70,5 @@ func (a *Application) Run() {
 
 	}()
 
-	a.Router.Run()
+	a.Server.Run()
 }
