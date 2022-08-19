@@ -18,6 +18,9 @@ var (
 
 	// Group
 	ErrorDeleteAdmin = &Error{http.StatusBadRequest, "ErrorDeleteAdmin", "you should not delete admin when someone exists"}
+
+	// Server
+	ErrorUnknownError = &Error{http.StatusInternalServerError, "ErrorUnknownError", "some unknown errors happen in server"}
 )
 
 func BadRequestError(msg string) *Error {
