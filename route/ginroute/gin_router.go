@@ -1,15 +1,13 @@
 package ginroute
 
 import (
-	"fmt"
+	"github.com/foreversmart/plate/errors"
 	"github.com/foreversmart/plate/logger"
-	"github.com/foreversmart/plate/logger/stack"
 	"github.com/foreversmart/plate/route"
 	"github.com/foreversmart/plate/utils/request"
 	"github.com/foreversmart/plate/utils/val"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"net/http/httputil"
 	"reflect"
 	"sync"
 	"time"
@@ -21,7 +19,7 @@ type GinRouter struct {
 	path       string
 	subRoute   []*GinRouter
 	wg         sync.WaitGroup
-	recover    route.Handler
+	recover    route.Recover
 	isClose    bool
 }
 
@@ -30,7 +28,14 @@ func NewGinRouter() *GinRouter {
 	g.Engine = gin.New()
 	g.path = "/"
 	g.middleware = make([]*route.Middleware, 0, 5)
+
+	// set router default recover
+	g.recover = GinRecovery
 	return g
+}
+
+func (g *GinRouter) SetRecover(res route.Recover) {
+	g.recover = res
 }
 
 func (g *GinRouter) Sub(relativePath string) *GinRouter {
@@ -66,6 +71,8 @@ func (g *GinRouter) Handle(method, path string, handler route.Handler, v interfa
 		panic("router handle v interface{} must be struct kind !")
 	}
 
+	handleArgs := make([]interface{}, 0, 5)
+
 	// TODO check v type must be struct
 	g.Engine.Handle(method, path, func(c *gin.Context) {
 		// connection come after server is closed
@@ -74,17 +81,17 @@ func (g *GinRouter) Handle(method, path string, handler route.Handler, v interfa
 			return
 		}
 
+		// recover
 		defer func() {
-			if err := recover(); err != nil {
-				g.recover(nil)
-				if l != nil {
-					stack := stack.Stack(3)
-					httprequest, _ := httputil.DumpRequest(c.Request, false)
-					msg := fmt.Sprintf("[Recovery] panic recovered:\n%s\n%s\n%s%s", string(httprequest), err, stack, reset)
-					l.Println(msg)
-					panicLogger.Error(msg)
+			if recV := recover(); recV != nil {
+				resp, err := g.recover(recV, c.Request, handleArgs)
+				if err != nil {
+					handleError(c, err)
+					return
 				}
-				c.AbortWithStatus(500)
+
+				c.JSON(200, resp)
+
 			}
 		}()
 
@@ -97,26 +104,30 @@ func (g *GinRouter) Handle(method, path string, handler route.Handler, v interfa
 		parser, err := request.NewParser(req)
 		if err != nil {
 			logger.StdLog.Error(err)
-			c.JSON(400, err)
+			handleError(c, err)
 			return
 		}
 
 		for _, mid := range g.middleware {
 			mv := reflect.ValueOf(mid.V)
-			mt := mv.Type().Elem()
+			mv = val.SettableValue(mv)
+			mt := mv.Type()
 			nmv := reflect.New(mt)
+
 			err = parser.Parse(nmv.Elem())
 
 			if err != nil {
 				logger.StdLog.Error(err)
-				c.JSON(400, nil)
+				handleError(c, err)
 				return
 			}
 
-			res, err := mid.H(nmv.Interface())
+			midArgs := nmv.Interface()
+			handleArgs = append(handleArgs, midArgs)
+			res, err := mid.H(midArgs)
 			if err != nil {
 				logger.StdLog.Error(err)
-				c.JSON(400, nil)
+				handleError(c, err)
 				return
 			}
 
@@ -126,16 +137,28 @@ func (g *GinRouter) Handle(method, path string, handler route.Handler, v interfa
 		err = parser.Parse(nv.Elem())
 		if err != nil {
 			logger.StdLog.Error(err)
-			c.JSON(400, err)
+			handleError(c, err)
 			return
 		}
 
+		reqArg := nv.Interface()
+		handleArgs = append(handleArgs, reqArg)
+
 		// do before
-		resp, _ := handler(nv.Interface())
+		resp, _ := handler(reqArg)
 
 		// do after
 		c.JSON(200, resp)
 	})
+}
+
+func handleResp(c *gin.Context, resp interface{}, err error) {
+	if e, ok := err.(*errors.Error); ok {
+		c.JSON(e.Code, e)
+	}
+
+	ne := errors.BadRequestError(err.Error())
+	c.JSON(ne.Code, ne)
 }
 
 func (g *GinRouter) Wait(timeout int) {

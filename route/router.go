@@ -1,5 +1,7 @@
 package route
 
+import "net/http"
+
 type Router interface {
 	// Handle register a new handle logic for given path, method and object v
 	// v must be a struct or struct pointer
@@ -7,9 +9,8 @@ type Router interface {
 	// AddMiddle will add mid handler before handle's handler called, v is mid request
 	// v must be a struct or struct pointer
 	AddMiddle(mid Handler, v interface{})
-
-	// SetRecovery is
-	SetRecovery(rec Handler)
+	// SetRecover set router default recover
+	SetRecover(rec Recover)
 	// Wait will wait all the connection logic close or timeout
 	Wait(timeout int)
 	// Close will close the router later connection will get failed
@@ -27,3 +28,9 @@ type Router interface {
 }
 
 type Handler func(req interface{}) (resp interface{}, err error)
+
+// Recover is function when handle panic will recover the handle controller function
+// recV is recover() return value which catch from panic
+// req means handle http request
+// args means handle args and the middleware args and args are array by called sequence
+type Recover func(recV interface{}, req *http.Request, args []interface{}) (resp interface{}, err error)

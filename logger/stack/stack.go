@@ -14,7 +14,7 @@ var (
 	slash     = []byte("/")
 )
 
-// stack returns a nicely formated stack frame, skipping skip frames
+// Stack returns a nicely formated stack frame, skipping skip frames
 func Stack(skip int) []byte {
 	buf := new(bytes.Buffer) // the returned data
 	// As we loop, we open files and read them. These variables record the currently
@@ -41,7 +41,7 @@ func Stack(skip int) []byte {
 	return buf.Bytes()
 }
 
-// source returns a space-trimmed slice of the n'th line.
+// Source returns a space-trimmed slice of the n'th line.
 func Source(lines [][]byte, n int) []byte {
 	n-- // in stack trace, lines are 1-indexed but our array is 0-indexed
 	if n < 0 || n >= len(lines) {
@@ -50,7 +50,7 @@ func Source(lines [][]byte, n int) []byte {
 	return bytes.TrimSpace(lines[n])
 }
 
-// function returns, if possible, the name of the function containing the PC.
+// Function returns, if possible, the name of the function containing the PC.
 func Function(pc uintptr) []byte {
 	fn := runtime.FuncForPC(pc)
 	if fn == nil {
