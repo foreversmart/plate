@@ -6,9 +6,16 @@ type Router interface {
 	// Handle register a new handle logic for given path, method and object v
 	// v must be a struct or struct pointer
 	Handle(method, path string, handler Handler, v interface{})
-	// AddMiddle will add mid handler before handle's handler called, v is mid request
+	// Sub return the relative sub router, sub router will inherit parent router's middleware
+	Sub(relativePath string) Router
+	// AddMiddleBefore will add mid handler before handle's handler called, v is mid request
 	// v must be a struct or struct pointer
-	AddMiddle(mid Handler, v interface{})
+	// sub before middle exec after parent before middles
+	AddMiddleBefore(mid Handler, v interface{})
+	// AddMiddleAfter will add mid handler before handle's handler called, v is mid request
+	// v must be a struct or struct pointer
+	// sub after middle exec before parent after middles
+	AddMiddleAfter(mid Handler, v interface{})
 	// SetRecover set router default recover
 	SetRecover(rec Recover)
 	// Wait will wait all the connection logic close or timeout
