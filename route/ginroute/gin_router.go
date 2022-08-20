@@ -41,7 +41,7 @@ func (g *GinRouter) SetRecover(res route.Recover) {
 	g.recover = res
 }
 
-func (g *GinRouter) Sub(relativePath string) *GinRouter {
+func (g *GinRouter) Sub(relativePath string) route.Router {
 	ng := &GinRouter{
 		engine: g.engine,
 		path:   joinPaths(g.path, relativePath),
