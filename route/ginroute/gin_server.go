@@ -18,7 +18,7 @@ func (g *GinServer) Route() route.Router {
 }
 
 func (g *GinServer) Run(addr ...string) {
-	g.Root.Engine.Run(addr...)
+	g.Root.engine.Run(addr...)
 }
 
 func (g *GinServer) Wait(timeout int) {

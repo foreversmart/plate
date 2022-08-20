@@ -15,7 +15,7 @@ func TestNewGinServer(t *testing.T) {
 	server := NewGinServer()
 	route := server.Route()
 	route.Handle(http.MethodPost, "/price", _Business.Price, &PriceReq{})
-	route.AddMiddle(UserMiddleware, &UserReq{})
+	route.AddMiddleBefore(UserMiddleware, &UserReq{})
 	go server.Run(":8080")
 
 	time.Sleep(time.Second)

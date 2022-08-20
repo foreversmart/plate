@@ -14,20 +14,23 @@ import (
 )
 
 type GinRouter struct {
-	Engine     *gin.Engine
-	middleware []*route.Middleware
-	path       string
-	subRoute   []*GinRouter
-	wg         sync.WaitGroup
-	recover    route.Recover
-	isClose    bool
+	engine            *gin.Engine
+	beforeMid         []*route.Middle
+	afterMid          []*route.Middle
+	parentAfterMidNum int          // mark after mid is parent router or sub itself
+	path              string       // url path
+	subs              []*GinRouter // sub routers
+	wg                sync.WaitGroup
+	recover           route.Recover
+	isClose           bool
 }
 
 func NewGinRouter() *GinRouter {
 	g := &GinRouter{}
-	g.Engine = gin.New()
+	g.engine = gin.New()
 	g.path = "/"
-	g.middleware = make([]*route.Middleware, 0, 5)
+	g.beforeMid = make([]*route.Middle, 0, 5)
+	g.afterMid = make([]*route.Middle, 0, 5)
 
 	// set router default recover
 	g.recover = GinRecovery
@@ -40,22 +43,41 @@ func (g *GinRouter) SetRecover(res route.Recover) {
 
 func (g *GinRouter) Sub(relativePath string) *GinRouter {
 	ng := &GinRouter{
-		Engine: g.Engine,
+		engine: g.engine,
 		path:   joinPaths(g.path, relativePath),
 	}
 
-	copy(ng.middleware, g.middleware)
-	g.subRoute = append(g.subRoute, ng)
+	copy(ng.beforeMid, g.beforeMid)
+	copy(ng.afterMid, g.afterMid)
+	g.subs = append(g.subs, ng)
+	ng.parentAfterMidNum = len(g.afterMid)
 
 	return ng
 }
 
-func (g *GinRouter) AddMiddle(handler route.Handler, v interface{}) {
-	g.middleware = append(g.middleware, &route.Middleware{
-		handler,
-		v,
+func (g *GinRouter) AddMiddleBefore(handler route.Handler, v interface{}) {
+	g.beforeMid = append(g.beforeMid, &route.Middle{
+		H: handler,
+		V: v,
 	})
 
+}
+
+// AddMiddleAfter add after middle
+func (g *GinRouter) AddMiddleAfter(handler route.Handler, v interface{}) {
+	g.afterMid = append(g.afterMid, &route.Middle{
+		H: handler,
+		V: v,
+	})
+
+	if len(g.afterMid) == 1 {
+		return
+	}
+
+	// move the new middle after to the right place
+	for i := len(g.afterMid) - 1; i > len(g.afterMid)-g.parentAfterMidNum-1; i-- {
+		g.afterMid[i], g.afterMid[i-1] = g.afterMid[i-1], g.afterMid[i]
+	}
 }
 
 func (g *GinRouter) Handle(method, path string, handler route.Handler, v interface{}) {
@@ -74,7 +96,7 @@ func (g *GinRouter) Handle(method, path string, handler route.Handler, v interfa
 	handleArgs := make([]interface{}, 0, 5)
 
 	// TODO check v type must be struct
-	g.Engine.Handle(method, path, func(c *gin.Context) {
+	g.engine.Handle(method, path, func(c *gin.Context) {
 		// connection come after server is closed
 		if g.isClose {
 			c.JSON(500, nil)
@@ -108,7 +130,8 @@ func (g *GinRouter) Handle(method, path string, handler route.Handler, v interfa
 			return
 		}
 
-		for _, mid := range g.middleware {
+		// do before mid
+		for _, mid := range g.beforeMid {
 			mv := reflect.ValueOf(mid.V)
 			mv = val.SettableValue(mv)
 			mt := mv.Type()
@@ -144,15 +167,54 @@ func (g *GinRouter) Handle(method, path string, handler route.Handler, v interfa
 		reqArg := nv.Interface()
 		handleArgs = append(handleArgs, reqArg)
 
-		// do before
-		resp, _ := handler(reqArg)
+		// do handle function
+		resp, err := handler(reqArg)
+		if err != nil {
+			handleError(c, err)
+			return
+		}
 
-		// do after
+		// do after mid
+		for _, mid := range g.afterMid {
+			mv := reflect.ValueOf(mid.V)
+			mv = val.SettableValue(mv)
+			mt := mv.Type()
+			nmv := reflect.New(mt)
+
+			err = parser.Parse(nmv.Elem())
+
+			if err != nil {
+				logger.StdLog.Error(err)
+				handleError(c, err)
+				return
+			}
+
+			midArgs := nmv.Interface()
+			handleArgs = append(handleArgs, midArgs)
+			res, err := mid.H(midArgs)
+			if err != nil {
+				logger.StdLog.Error(err)
+				handleError(c, err)
+				return
+			}
+
+			parser.WithMid(res)
+		}
+
+		// return handler resp
 		c.JSON(200, resp)
 	})
 }
 
 func handleResp(c *gin.Context, resp interface{}, err error) {
+	if err == nil {
+		c.JSON(http.StatusOK, resp)
+	}
+
+	handleError(c, err)
+}
+
+func handleError(c *gin.Context, err error) {
 	if e, ok := err.(*errors.Error); ok {
 		c.JSON(e.Code, e)
 	}
@@ -165,7 +227,7 @@ func (g *GinRouter) Wait(timeout int) {
 	c := make(chan struct{})
 	go func() {
 		defer close(c)
-		for _, sub := range g.subRoute {
+		for _, sub := range g.subs {
 			sub.Wait(timeout)
 		}
 		g.wg.Wait()
@@ -181,7 +243,7 @@ func (g *GinRouter) Wait(timeout int) {
 
 func (g *GinRouter) Close() {
 	g.isClose = true
-	for _, sub := range g.subRoute {
+	for _, sub := range g.subs {
 		sub.Close()
 	}
 }
