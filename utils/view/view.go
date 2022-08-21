@@ -52,9 +52,9 @@ func (view *View) NewView(aspect string) *View {
 	return newView
 }
 
-func (v *View) MergeWithNew(nv *View) {
+func (view *View) MergeWithNew(nv *View) {
 	for k, f := range nv.Fields {
-		v.Fields[k] = f
+		view.Fields[k] = f
 	}
 }
 
@@ -87,7 +87,13 @@ func (view *View) SetStructValue(v reflect.Value, must, full bool, tagOpt ...str
 		}
 
 		fv := v.Field(i)
+		// if fv can't set jump
+		if !fv.CanSet() {
+			continue
+		}
+
 		if field.isLeaf {
+			fmt.Println("set value:", name)
 			SetValue(fv, field.value)
 			continue
 		}

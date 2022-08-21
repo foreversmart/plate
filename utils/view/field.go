@@ -1,7 +1,6 @@
 package view
 
 import (
-	"fmt"
 	"reflect"
 )
 
@@ -18,7 +17,14 @@ func FetchField(parentTag reflect.StructTag, full bool, v reflect.Value, tagOpt 
 	for v.Kind() == reflect.Ptr {
 
 		if v.IsNil() {
-			return nil, fmt.Errorf("cant fetch view from a nil object %s", v.Type().String())
+			//return nil, fmt.Errorf("cant fetch view from a nil object %s", v.Type().String())
+			f = &Field{
+				tp:     v.Type(),
+				value:  v,
+				tag:    parentTag,
+				isLeaf: true,
+			}
+			return
 		}
 
 		child := v.Elem()
@@ -39,21 +45,20 @@ func FetchField(parentTag reflect.StructTag, full bool, v reflect.Value, tagOpt 
 
 	switch v.Kind() {
 	case reflect.Struct:
-		f.isLeaf = false
 		childView, err := FetchViewFromStruct(f.value, full, tagOpt...)
 		if err != nil {
 			return nil, err
 		}
+
 		f.Child = childView
+
 	case reflect.Map:
-		f.isLeaf = false
 		childView, err := FetchViewFromMap(parentTag, full, f.value)
 		if err != nil {
 			return nil, err
 		}
 		f.Child = childView
 	case reflect.Array, reflect.Slice:
-		f.isLeaf = false
 		childView, err := FetchViewFromArray(parentTag, full, f.value)
 		if err != nil {
 			return nil, err
@@ -61,5 +66,10 @@ func FetchField(parentTag reflect.StructTag, full bool, v reflect.Value, tagOpt 
 		f.Child = childView
 
 	}
+
+	if f.Child != nil {
+		f.isLeaf = false
+	}
+
 	return
 }
