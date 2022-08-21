@@ -29,7 +29,7 @@ func TestView_SetObjectValue(t *testing.T) {
 		FieldIntArray:  []int{1, 2, 3},
 	}
 
-	view, err := FetchViewFromStruct(reflect.ValueOf(demo))
+	view, err := FetchViewFromStruct(reflect.ValueOf(demo), false)
 	assert.Nil(t, err)
 	assert.NotNil(t, view)
 

@@ -19,6 +19,7 @@ type View struct {
 	Fields map[string]*Field // fields means a map of filed list, key is aspect tag of filed
 }
 
+//
 func (view *View) NewView(aspect string) *View {
 	newView := &View{}
 	newView.Aspect = aspect
@@ -63,10 +64,10 @@ func (v *View) MergeWithNew(nv *View) {
 func (view *View) SetObjectValue(o interface{}, must bool, tagOpt ...string) (err error) {
 	v := reflect.ValueOf(o)
 	v = val.SettableValue(v)
-	return view.SetStructValue(v, must, tagOpt...)
+	return view.SetStructValue(v, must, false, tagOpt...)
 }
 
-func (view *View) SetStructValue(v reflect.Value, must bool, tagOpt ...string) (err error) {
+func (view *View) SetStructValue(v reflect.Value, must, full bool, tagOpt ...string) (err error) {
 	if v.Kind() != reflect.Struct {
 		return fmt.Errorf("cant fetch view from type %s", v.Type().String())
 	}
@@ -74,7 +75,7 @@ func (view *View) SetStructValue(v reflect.Value, must bool, tagOpt ...string) (
 	fieldNum := v.Type().NumField()
 	for i := 0; i < fieldNum; i++ {
 		sf := v.Type().Field(i)
-		name, isValid := fieldName(sf, tagOpt...)
+		name, isFull, isValid := fieldName(sf, full, tagOpt...)
 		if !isValid {
 			continue
 		}
@@ -94,11 +95,11 @@ func (view *View) SetStructValue(v reflect.Value, must bool, tagOpt ...string) (
 		fv = val.SettableValue(fv)
 		switch fv.Kind() {
 		case reflect.Struct:
-			err = field.Child.SetStructValue(fv, must, tagOpt...)
+			err = field.Child.SetStructValue(fv, must, isFull, tagOpt...)
 		case reflect.Map:
-			err = field.Child.SetMapValue(fv, must, tagOpt...)
+			err = field.Child.SetMapValue(fv, must, isFull, tagOpt...)
 		case reflect.Array, reflect.Slice:
-			err = field.Child.SetArrayValue(fv, must, tagOpt...)
+			err = field.Child.SetArrayValue(fv, must, isFull, tagOpt...)
 
 		}
 
@@ -108,7 +109,7 @@ func (view *View) SetStructValue(v reflect.Value, must bool, tagOpt ...string) (
 }
 
 // SetMapValue set view's value to v. v is a map or occurs type not much error
-func (view *View) SetMapValue(v reflect.Value, must bool, tagOpt ...string) error {
+func (view *View) SetMapValue(v reflect.Value, must, full bool, tagOpt ...string) error {
 	if v.Kind() != reflect.Map {
 		return fmt.Errorf("cant set view type %s only support map kind", v.Type().String())
 	}
@@ -139,11 +140,11 @@ func (view *View) SetMapValue(v reflect.Value, must bool, tagOpt ...string) erro
 
 		switch valueValue.Kind() {
 		case reflect.Struct:
-			err = value.Child.SetStructValue(valueValue, must, tagOpt...)
+			err = value.Child.SetStructValue(valueValue, must, full, tagOpt...)
 		case reflect.Map:
-			err = value.Child.SetMapValue(valueValue, must, tagOpt...)
+			err = value.Child.SetMapValue(valueValue, must, full, tagOpt...)
 		case reflect.Array, reflect.Slice:
-			err = value.Child.SetArrayValue(valueValue, must, tagOpt...)
+			err = value.Child.SetArrayValue(valueValue, must, full, tagOpt...)
 		}
 
 		v.SetMapIndex(keyValue, valueValue)
@@ -153,7 +154,7 @@ func (view *View) SetMapValue(v reflect.Value, must bool, tagOpt ...string) erro
 	return nil
 }
 
-func (view *View) SetArrayValue(v reflect.Value, must bool, tagOpt ...string) (err error) {
+func (view *View) SetArrayValue(v reflect.Value, must, full bool, tagOpt ...string) (err error) {
 	if v.Kind() != reflect.Array && v.Kind() != reflect.Slice {
 		return fmt.Errorf("cant set view type %s only support array or slice kind", v.Kind().String())
 	}
@@ -176,11 +177,11 @@ func (view *View) SetArrayValue(v reflect.Value, must bool, tagOpt ...string) (e
 
 		switch arrayValue.Kind() {
 		case reflect.Struct:
-			err = value.Child.SetStructValue(arrayValue, must, tagOpt...)
+			err = value.Child.SetStructValue(arrayValue, must, full, tagOpt...)
 		case reflect.Map:
-			err = value.Child.SetMapValue(arrayValue, must, tagOpt...)
+			err = value.Child.SetMapValue(arrayValue, must, full, tagOpt...)
 		case reflect.Array, reflect.Slice:
-			err = value.Child.SetArrayValue(arrayValue, must, tagOpt...)
+			err = value.Child.SetArrayValue(arrayValue, must, full, tagOpt...)
 		}
 	}
 
