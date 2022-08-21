@@ -154,7 +154,12 @@ func (g *GinRouter) Handle(method, path string, handler route.Handler, v interfa
 				return
 			}
 
-			parser.WithMid(res)
+			err = parser.WithMid(res)
+			if err != nil {
+				logger.StdLog.Error(err)
+				handleError(c, err)
+				return
+			}
 		}
 
 		err = parser.Parse(nv.Elem())
@@ -198,7 +203,12 @@ func (g *GinRouter) Handle(method, path string, handler route.Handler, v interfa
 				return
 			}
 
-			parser.WithMid(res)
+			err = parser.WithMid(res)
+			if err != nil {
+				logger.StdLog.Error(err)
+				handleError(c, err)
+				return
+			}
 		}
 
 		// return handler resp
