@@ -80,6 +80,12 @@ func (g *GinRouter) AddMiddleAfter(handler route.Handler, v interface{}) {
 	}
 }
 
+type ReqMeta struct {
+	Method    string `json:"method" plate:"method,mid"`
+	Path      string `json:"path" plate:"path,mid"`
+	ParamName string `json:"param_name" plate:"param_name,mid"`
+}
+
 func (g *GinRouter) Handle(method, path string, handler route.Handler, v interface{}) {
 	if v == nil {
 		panic("router handle v interface{} cant be nil")
@@ -94,6 +100,12 @@ func (g *GinRouter) Handle(method, path string, handler route.Handler, v interfa
 	}
 
 	handleArgs := make([]interface{}, 0, 5)
+
+	meta := &ReqMeta{
+		Method:    method,
+		Path:      path,
+		ParamName: vt.Name(),
+	}
 
 	// TODO check v type must be struct
 	g.engine.Handle(method, path, func(c *gin.Context) {
@@ -129,6 +141,9 @@ func (g *GinRouter) Handle(method, path string, handler route.Handler, v interfa
 			handleError(c, err)
 			return
 		}
+
+		// add request meta info
+		parser.WithMid(meta)
 
 		// do before mid
 		for _, mid := range g.beforeMid {
