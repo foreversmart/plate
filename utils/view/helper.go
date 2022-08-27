@@ -10,8 +10,6 @@ func SetValue(obV, dataV reflect.Value) (err error) {
 			// TODO optimize
 			ot := obV.Type().Elem()
 			obV.Set(reflect.New(ot))
-			obV.Elem().Set(dataV)
-			return
 		}
 
 		child := obV.Elem()
