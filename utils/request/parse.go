@@ -58,7 +58,7 @@ func Parse(v reflect.Value, jsonValue *fastjson.Value, meta map[string]map[strin
 
 	// set middleware value
 	if mid != nil {
-		err = mid.SetStructValue(v, true, false, LocMid)
+		err = mid.SetStructValue(v, true, false, "plate", LocMid)
 	}
 
 	return

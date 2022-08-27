@@ -19,7 +19,12 @@ func NewParser(req Requester) (p *Parser, err error) {
 }
 
 func (p *Parser) WithMid(resp interface{}) error {
-	v, err := view.FetchViewFromStruct(reflect.ValueOf(resp), TagNameFetch, LocMid)
+	// empty resp avoid fetch view
+	if resp == nil {
+		return nil
+	}
+
+	v, err := view.FetchViewFromStruct(reflect.ValueOf(resp), false, "plate", LocMid)
 	if err != nil {
 		return err
 	}

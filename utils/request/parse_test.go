@@ -88,7 +88,7 @@ func TestParse(t *testing.T) {
 		panic(err)
 	}
 
-	Parse(reValue.Elem(), jsonValue, nil, nil)
+	Parse(reValue.Elem(), jsonValue, nil, nil, nil)
 	newI := reValue.Elem().Interface()
 
 	fmt.Println(newI)

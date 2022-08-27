@@ -10,9 +10,15 @@ import (
 // pass viewTags to decide which tag we use to fetch, if not passed we use the default type's name
 // return view and error
 func FetchViewFromStruct(v reflect.Value, full bool, tagOpt ...string) (view *View, err error) {
+	// zero value cant get view
+	if v.IsZero() {
+		return nil, nil
+	}
+
 	for v.Kind() == reflect.Ptr {
 		if v.IsNil() {
-			return nil, fmt.Errorf("cant fetch view from a nil object %s", v.Type().String())
+			//return nil, fmt.Errorf("cant fetch view from a nil object %s", v.Type().String())
+			return nil, nil
 		}
 
 		child := v.Elem()
