@@ -92,8 +92,7 @@ func (view *View) SetStructValue(v reflect.Value, must, full bool, tagOpt ...str
 			continue
 		}
 
-		if field.isLeaf {
-			fmt.Println("set value:", name)
+		if field.isLeaf || isFull {
 			SetValue(fv, field.value)
 			continue
 		}
