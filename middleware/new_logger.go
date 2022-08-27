@@ -7,13 +7,16 @@ import (
 )
 
 type LogMidReq struct {
-	ReqId string `json:"req_id" plate:"Req_id,header"`
+	ReqId     string `json:"req_id" plate:"Req_id,header"`
+	Method    string `json:"method" plate:"method,mid"`
+	Path      string `json:"path" plate:"path,mid"`
+	ParamName string `json:"param_name" plate:"param_name,mid"`
 }
 
 type LogMidResp struct {
 	Logger       logger.Logger `json:"logger" plate:"logger,mid"`
-	ReqRawLog    *logger.Log   `json:"req_raw_log" plate:"req_raw_log,mid"`
-	LogStartTime time.Time     `json:"log_start_time" plate:"log_start_time,mid"`
+	ReqRawLog    *logger.Log   `json:"req_raw_log" plate:"req_raw_log,mid:full"`
+	LogStartTime time.Time     `json:"log_start_time" plate:"log_start_time,mid:full"`
 }
 
 func LogStart(req interface{}) (resp interface{}, err error) {
@@ -35,6 +38,9 @@ func LogStart(req interface{}) (resp interface{}, err error) {
 
 	requestLog.LogEntry = requestLog.LogEntry.WithFields(map[string]interface{}{
 		"request_id": requestID,
+		"method":     arg.Method,
+		"path":       arg.Path,
+		"paramName":  arg.ParamName,
 	})
 
 	requestLog.WithFieldsNewLog(map[string]interface{}{
@@ -42,7 +48,7 @@ func LogStart(req interface{}) (resp interface{}, err error) {
 		"timedate":   time.Now(),
 	}).Infof("start")
 
-	fmt.Println(requestLog.LogEntry)
+	//fmt.Println(requestLog.LogEntry)
 
 	return &LogMidResp{
 		Logger:       requestLog,
@@ -53,12 +59,14 @@ func LogStart(req interface{}) (resp interface{}, err error) {
 
 type LogFinishReq struct {
 	ReqRawLog    *logger.Log `json:"req_raw_log" plate:"req_raw_log,mid:full"`
-	LogStartTime time.Time   `json:"log_start_time" plate:"log_start_time,mid"`
+	LogStartTime time.Time   `json:"log_start_time" plate:"log_start_time,mid:full"`
 }
 
 func LogFinish(req interface{}) (resp interface{}, err error) {
 	arg := req.(*LogFinishReq)
 	// after request
+
+	fmt.Println(arg.LogStartTime, "-----------------")
 	latency := time.Since(arg.LogStartTime)
 
 	// access the status we are sending

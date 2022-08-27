@@ -49,7 +49,7 @@ type Logger interface {
 type Log struct {
 	mu       sync.Mutex
 	out      io.Writer
-	LogEntry *log.Entry
+	LogEntry *log.Entry `json:"log_entry" plate:"log_entry,mid"`
 	fields   map[string]interface{}
 }
 
