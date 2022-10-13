@@ -1,6 +1,7 @@
 package request
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/foreversmart/plate/utils/view"
 	"reflect"
@@ -22,9 +23,12 @@ func ParseRequest(req Requester, v reflect.Value) error {
 }
 
 const (
-	TagNameFetch = "plate"
-	TagNameCheck = "check"
-	TagOption    = ","
+	TagNameFetch   = "plate"
+	TagNameCheck   = "check"
+	TagOption      = ","
+	TagOptionSplit = ":"
+
+	TagOptionInline = "inline"
 
 	LocHeader = "header"
 	LocBody   = "body"
@@ -41,7 +45,7 @@ const (
 		B string `plate:"b,header"`
 		B string `plate:"b,path"`
 		B string `plate:"b,form"`
-		B string `plate:"b,mid"`
+		B string `plate:"b,mid:inline"`
 	}
 
 	type Mid struct {
@@ -72,6 +76,7 @@ func Parse(v reflect.Value, jsonValue *fastjson.Value, meta map[string]map[strin
 		B string `plate:"b,path"`
 		B string `plate:"b,form"`
 		B string `plate:"b,mid"`
+		B string `plate:"b,body:inline"`
 	}
 
 	type Mid struct {
@@ -85,16 +90,30 @@ func parse(v reflect.Value, jsonValue *fastjson.Value, meta map[string]map[strin
 		for i := 0; i < v.Type().NumField(); i++ {
 			field := v.Type().Field(i)
 			tag := field.Tag.Get(TagNameFetch)
-			items := strings.Split(tag, TagOption)
+			items := strings.Split(tag, TagOptionSplit)
+			option := ""
+			if len(items) > 1 {
+				option = items[1]
+			}
+
+			items = strings.Split(items[0], TagOption)
 			name := items[0]
 
-			loc := "body"
+			loc := LocBody
 			if len(items) > 1 {
 				loc = items[1]
 			}
 
 			switch loc {
 			case LocBody:
+				if option == TagOptionInline {
+					err := parseJson(v.Field(i), jsonValue, meta, jsonPath)
+					if err != nil {
+						return err
+					}
+					continue
+				}
+
 				// json path
 				newJsonPath := append(jsonPath, name)
 				newJsonExist := jsonValue.Exists(newJsonPath...)
@@ -102,7 +121,10 @@ func parse(v reflect.Value, jsonValue *fastjson.Value, meta map[string]map[strin
 					continue
 				}
 
-				parseJson(v.Field(i), jsonValue, meta, newJsonPath)
+				err := parseJson(v.Field(i), jsonValue, meta, newJsonPath)
+				if err != nil {
+					return err
+				}
 			default:
 
 				metaMap, ok := meta[loc]
@@ -128,7 +150,25 @@ func parse(v reflect.Value, jsonValue *fastjson.Value, meta map[string]map[strin
 	return nil
 }
 
+var (
+	marshalerType = reflect.TypeOf((*json.Unmarshaler)(nil)).Elem()
+)
+
 func parseJson(v reflect.Value, jsonValue *fastjson.Value, meta map[string]map[string][]string, jsonPath []string) error {
+	// handle Unmarshaler case
+	if v.Kind() != reflect.Pointer && v.Type().Name() != "" && v.CanAddr() {
+		vp := v.Addr()
+		vi, ok := vp.Interface().(json.Unmarshaler)
+		if ok {
+			return vi.UnmarshalJSON(jsonValue.Get(jsonPath...).MarshalTo(nil))
+		}
+	}
+
+	vi, ok := v.Interface().(json.Unmarshaler)
+	if ok {
+		return vi.UnmarshalJSON(jsonValue.Get(jsonPath...).GetStringBytes())
+	}
+
 	switch v.Kind() {
 	case reflect.Struct:
 		parse(v, jsonValue, meta, jsonPath)

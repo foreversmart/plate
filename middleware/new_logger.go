@@ -65,10 +65,7 @@ type LogFinishReq struct {
 func LogFinish(req interface{}) (resp interface{}, err error) {
 	arg := req.(*LogFinishReq)
 	// after request
-
-	fmt.Println(arg.LogStartTime, "-----------------")
 	latency := time.Since(arg.LogStartTime)
-
 	// access the status we are sending
 	arg.ReqRawLog.WithFieldsNewLog(map[string]interface{}{
 		"time_latency": fmt.Sprint(latency),
