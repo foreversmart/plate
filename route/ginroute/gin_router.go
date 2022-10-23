@@ -99,8 +99,6 @@ func (g *GinRouter) Handle(method, path string, handler route.Handler, v interfa
 		panic("router handle v interface{} must be struct kind !")
 	}
 
-	handleArgs := make([]interface{}, 0, 5)
-
 	meta := &ReqMeta{
 		Method:    method,
 		Path:      path,
@@ -109,6 +107,8 @@ func (g *GinRouter) Handle(method, path string, handler route.Handler, v interfa
 
 	// TODO check v type must be struct
 	g.engine.Handle(method, path, func(c *gin.Context) {
+		handleArgs := make([]interface{}, 0, 5)
+
 		// connection come after server is closed
 		if g.isClose {
 			c.JSON(500, nil)
@@ -162,6 +162,7 @@ func (g *GinRouter) Handle(method, path string, handler route.Handler, v interfa
 
 			midArgs := nmv.Interface()
 			handleArgs = append(handleArgs, midArgs)
+
 			res, err := mid.H(midArgs)
 			if err != nil {
 				logger.StdLog.Error(err)
@@ -242,6 +243,7 @@ func handleResp(c *gin.Context, resp interface{}, err error) {
 func handleError(c *gin.Context, err error) {
 	if e, ok := err.(*errors.Error); ok {
 		c.JSON(e.Code, e)
+		return
 	}
 
 	ne := errors.BadRequestError(err.Error())
