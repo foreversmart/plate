@@ -39,20 +39,22 @@ const (
 )
 
 /*
-	Parse: parse a json value and meta to struct reflect value
-	type A struct {
-		B string `plate:"b,body" check:"int>10"`
-		B string `plate:"b,header"`
-		B string `plate:"b,path"`
-		B string `plate:"b,form"`
-		B string `plate:"b,mid:inline"`
-	}
+	 Parse: parse a json value and meta to struct reflect value
 
-	type Mid struct {
-		B string `mid:"b"`
-	}
-	//
-	// meta must be golang basic type such as int, string, bool , float
+		type A struct {
+			B string `plate:"b,body" check:"int>10"`
+			B string `plate:"b,header"`
+			B string `plate:"b,path"`
+			B string `plate:"b,form"`
+			B string `plate:"b,mid:inline"`
+		}
+
+		type Mid struct {
+			B string `mid:"b"`
+		}
+
+//
+// meta must be golang basic type such as int, string, bool , float
 */
 func Parse(v reflect.Value, jsonValue *fastjson.Value, meta map[string]map[string][]string, mid *view.View, jsonPath []string) (err error) {
 	err = parse(v, jsonValue, meta, jsonPath)
@@ -69,7 +71,8 @@ func Parse(v reflect.Value, jsonValue *fastjson.Value, meta map[string]map[strin
 }
 
 /*
-	parse: parse a json value and meta to struct reflect value
+parse: parse a json value and meta to struct reflect value
+
 	type A struct {
 		B string `plate:"b,body" check:"int>10"`
 		B string `plate:"b,header"`
@@ -82,8 +85,10 @@ func Parse(v reflect.Value, jsonValue *fastjson.Value, meta map[string]map[strin
 	type Mid struct {
 		B string `mid:"b"`
 	}
-	//
-	// meta must be golang basic type such as int, string, bool , float
+
+//
+// meta must be golang basic type such as int, string, bool , float
+// v must struct or the parse is invalid
 */
 func parse(v reflect.Value, jsonValue *fastjson.Value, meta map[string]map[string][]string, jsonPath []string) error {
 	if v.Kind() == reflect.Struct {
@@ -126,6 +131,30 @@ func parse(v reflect.Value, jsonValue *fastjson.Value, meta map[string]map[strin
 					return err
 				}
 			default:
+				if option == TagOptionInline {
+					vf := v.Field(i)
+					for vf.Kind() == reflect.Ptr {
+						if vf.IsNil() {
+							//return nil, fmt.Errorf("cant fetch view from a nil object %s", v.Type().String())
+							ot := vf.Type().Elem()
+							vf.Set(reflect.New(ot))
+						}
+
+						child := vf.Elem()
+						// break loop pointer
+						if vf == child {
+							break
+						}
+
+						vf = child
+					}
+
+					err := parse(vf, jsonValue, meta, jsonPath)
+					if err != nil {
+						return err
+					}
+					continue
+				}
 
 				metaMap, ok := meta[loc]
 				if !ok {
@@ -138,7 +167,7 @@ func parse(v reflect.Value, jsonValue *fastjson.Value, meta map[string]map[strin
 				}
 
 				// default parse the first value
-				err := val.SetValueByString(v.Field(i), metaValue[0])
+				err := val.SetValueByString(val.SettableValue(v.Field(i)), metaValue[0])
 				if err != nil {
 					return err
 				}
