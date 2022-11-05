@@ -16,7 +16,7 @@ func main() {
 	}
 
 	type Req struct {
-		Logger logger.Logger `json:"logger" plate:"logger,mid"`
+		Logger logger.Logger `json:"-" plate:"logger,mid"`
 	}
 
 	type Resp struct {

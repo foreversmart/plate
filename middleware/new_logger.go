@@ -14,7 +14,7 @@ type LogMidReq struct {
 }
 
 type LogMidResp struct {
-	Logger       logger.Logger `json:"logger" plate:"logger,mid"`
+	Logger       logger.Logger `json:"-" plate:"logger,mid"`
 	ReqRawLog    *logger.Log   `json:"req_raw_log" plate:"req_raw_log,mid:full"`
 	LogStartTime time.Time     `json:"log_start_time" plate:"log_start_time,mid:full"`
 }
