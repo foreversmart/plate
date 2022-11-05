@@ -12,6 +12,7 @@ import (
 // len(tagOpt) > 1 will filter the tag option
 func fieldName(t reflect.StructField, full bool, tagOpt ...string) (res string, isFull bool, isValid bool) {
 	res = t.Name
+	isValid = true
 	isFull = full
 
 	if len(tagOpt) > 0 {

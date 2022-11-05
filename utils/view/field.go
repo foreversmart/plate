@@ -43,6 +43,10 @@ func FetchField(parentTag reflect.StructTag, full bool, v reflect.Value, tagOpt 
 		isLeaf: true,
 	}
 
+	if full == true {
+		return
+	}
+
 	switch v.Kind() {
 	case reflect.Struct:
 		childView, err := FetchViewFromStruct(f.value, full, tagOpt...)
