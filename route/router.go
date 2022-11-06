@@ -18,6 +18,8 @@ type Router interface {
 	AddMiddleAfter(mid Handler, v interface{})
 	// SetRecover set router default recover
 	SetRecover(rec Recover)
+	// SetAutoCors set router auto add cors methods
+	SetAutoCors(bool)
 	// Wait will wait all the connection logic close or timeout
 	Wait(timeout int)
 	// Close will close the router later connection will get failed
