@@ -50,6 +50,41 @@ type Configer interface {
 }
 ``` 
 
+### Router
+* Server can return a router for route registering and run http server inside
+```go
+type Server interface {
+	// Route return server root route
+	Route() Router
+	// Run attaches the router to a http.Server and starts listening and serving HTTP requests.
+	// Note: this method will block the calling goroutine indefinitely unless an error happens.
+	Run(addr ...string)
+	// Close the server close, after this method called all request all failed with 500 status code
+	Close()
+	// Wait all server request handle event finish or timeout
+	Wait(timeout int)
+}
+```
+* Router is an interface you can handle http call response
+. Router has a method SetRecover to set default recover actions
+recover type is defined below:
+```go
+type Recover func(recV interface{}, req *http.Request, args []interface{}) (resp interface{}, err error)
+
+```
+Plate has already implemented router and server interface with gin.
+In the ginroute package, we also define some struct tag control logic to handle request and response
+
+*Request:*
+* Format '{{tag_name}},{{loc}}:{{config option}}'
+* Default Tag name is 'plate'
+* loc include "header","body","path","form","query","mid". default location is body.
+* config option has inline and full
+  * inline will expand child object's fields  to parent fields. it's useful when parent will bring useless prefix path when marshal
+  * full is valid only used in middle passing intermediate result. it means we take the current object as a full object and ignore child fields. it is very useful when some child fields is not public or can't be copied eg. time.Time  
+*Response*
+  
+
 
 ## How To Use
 You can find some way from test cases and examples right now.
