@@ -18,7 +18,8 @@ func (g *GinServer) Route() route.Router {
 }
 
 func (g *GinServer) Run(addr ...string) {
-	g.Root.engine.Run(addr...)
+	g.Root.addCors()
+	panic(g.Root.engine.Run(addr...))
 }
 
 func (g *GinServer) Wait(timeout int) {

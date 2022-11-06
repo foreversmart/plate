@@ -22,7 +22,10 @@ type GinRouter struct {
 	subs              []*GinRouter // sub routers
 	wg                sync.WaitGroup
 	recover           route.Recover
-	isClose           bool
+	autoCors          bool                // auto handle cors options request
+	routeMap          map[string][]string // record route path map
+
+	isClose bool
 }
 
 func NewGinRouter() *GinRouter {
@@ -31,6 +34,7 @@ func NewGinRouter() *GinRouter {
 	g.path = "/"
 	g.beforeMid = make([]*route.Middle, 0, 5)
 	g.afterMid = make([]*route.Middle, 0, 5)
+	g.routeMap = make(map[string][]string)
 
 	// set router default recover
 	g.recover = GinRecovery
@@ -41,16 +45,42 @@ func (g *GinRouter) SetRecover(res route.Recover) {
 	g.recover = res
 }
 
+func (g *GinRouter) SetAutoCors(isOpen bool) {
+	g.autoCors = isOpen
+}
+
+func (g *GinRouter) addCors() {
+	if g.autoCors {
+		for path, _ := range g.routeMap {
+			g.engine.Handle(http.MethodOptions, path, func(c *gin.Context) {
+				c.Header("Access-Control-Allow-Origin", "*")
+				//c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE")
+				//c.Header("Access-Control-Allow-Origin", path)
+				//methodsStr := strings.Join(methods, ", ")
+				//c.Header("Access-Control-Allow-Methods", methodsStr)
+				c.Header("Access-Control-Allow-Headers", "x-token, content-type")
+				c.JSON(200, nil)
+			})
+		}
+	}
+
+	for _, sub := range g.subs {
+		sub.addCors()
+	}
+}
+
 func (g *GinRouter) Sub(relativePath string) route.Router {
 	ng := &GinRouter{
-		engine: g.engine,
-		path:   joinPaths(g.path, relativePath),
+		engine:   g.engine,
+		path:     joinPaths(g.path, relativePath),
+		routeMap: make(map[string][]string),
 	}
 
 	copy(ng.beforeMid, g.beforeMid)
 	copy(ng.afterMid, g.afterMid)
 	g.subs = append(g.subs, ng)
 	ng.parentAfterMidNum = len(g.afterMid)
+	ng.autoCors = g.autoCors
 
 	return ng
 }
@@ -105,8 +135,17 @@ func (g *GinRouter) Handle(method, path string, handler route.Handler, v interfa
 		ParamName: vt.Name(),
 	}
 
-	// TODO check v type must be struct
-	g.engine.Handle(method, path, func(c *gin.Context) {
+	// TODO uniform different path form
+	absPath := joinPaths(g.path, path)
+	g.routeMap[absPath] = append(g.routeMap[absPath], method)
+
+	g.engine.Handle(method, absPath, func(c *gin.Context) {
+		if g.autoCors {
+			c.Header("Access-Control-Allow-Origin", "*")
+			c.Header("Access-Control-Allow-Methods", method)
+			c.Header("Access-Control-Allow-Headers", "x-token, content-type")
+		}
+
 		handleArgs := make([]interface{}, 0, 5)
 
 		// connection come after server is closed
