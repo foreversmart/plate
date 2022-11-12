@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"reflect"
+	"strings"
 	"sync"
 	"time"
 )
@@ -51,13 +52,11 @@ func (g *GinRouter) SetAutoCors(isOpen bool) {
 
 func (g *GinRouter) addCors() {
 	if g.autoCors {
-		for path, _ := range g.routeMap {
+		for path, methods := range g.routeMap {
 			g.engine.Handle(http.MethodOptions, path, func(c *gin.Context) {
 				c.Header("Access-Control-Allow-Origin", "*")
-				//c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE")
-				//c.Header("Access-Control-Allow-Origin", path)
-				//methodsStr := strings.Join(methods, ", ")
-				//c.Header("Access-Control-Allow-Methods", methodsStr)
+				methodsStr := strings.Join(methods, ", ")
+				c.Header("Access-Control-Allow-Methods", methodsStr)
 				c.Header("Access-Control-Allow-Headers", "x-token, content-type")
 				c.JSON(200, nil)
 			})
