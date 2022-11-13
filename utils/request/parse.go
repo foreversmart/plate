@@ -30,12 +30,16 @@ const (
 
 	TagOptionInline = "inline"
 
+	// loc in request
 	LocHeader = "header"
 	LocBody   = "body"
 	LocPath   = "path"
 	LocForm   = "form"
 	LocQuery  = "query"
 	LocMid    = "mid"
+
+	// loc in resp
+	LocResp = "resp"
 )
 
 /*
