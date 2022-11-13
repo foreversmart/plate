@@ -1,6 +1,8 @@
 package ginroute
 
-import "github.com/foreversmart/plate/route"
+import (
+	"github.com/foreversmart/plate/route"
+)
 
 type GinServer struct {
 	Root    *GinRouter

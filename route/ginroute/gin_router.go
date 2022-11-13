@@ -53,9 +53,9 @@ func (g *GinRouter) SetAutoCors(isOpen bool) {
 func (g *GinRouter) addCors() {
 	if g.autoCors {
 		for path, methods := range g.routeMap {
+			methodsStr := strings.Join(methods, ", ")
 			g.engine.Handle(http.MethodOptions, path, func(c *gin.Context) {
 				c.Header("Access-Control-Allow-Origin", "*")
-				methodsStr := strings.Join(methods, ", ")
 				c.Header("Access-Control-Allow-Methods", methodsStr)
 				c.Header("Access-Control-Allow-Headers", "x-token, content-type")
 				c.JSON(200, nil)
