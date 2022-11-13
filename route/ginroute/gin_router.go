@@ -6,6 +6,7 @@ import (
 	"github.com/foreversmart/plate/route"
 	"github.com/foreversmart/plate/utils/request"
 	"github.com/foreversmart/plate/utils/val"
+	"github.com/foreversmart/plate/utils/view"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"reflect"
@@ -265,9 +266,35 @@ func (g *GinRouter) Handle(method, path string, handler route.Handler, v interfa
 			}
 		}
 
+		respView, err := view.FetchViewFromStruct(reflect.ValueOf(resp), false, request.TagNameFetch, request.LocResp)
+		if err != nil {
+			logger.StdLog.Error(err)
+			c.JSON(200, resp)
+			return
+		}
+
 		// return handler resp
-		c.JSON(200, resp)
+		ctrResp := &CommonRespCtr{
+			Code: http.StatusOK,
+		}
+		err = respView.SetObjectValue(ctrResp, false, request.TagNameFetch, request.LocResp)
+		if err != nil {
+			logger.StdLog.Error(err)
+			c.JSON(200, resp)
+			return
+		}
+
+		for k, v := range ctrResp.Header {
+			c.Header(k, v)
+		}
+
+		c.JSON(ctrResp.Code, resp)
 	})
+}
+
+type CommonRespCtr struct {
+	Code   int               `json:"-" plate:"code,resp"`
+	Header map[string]string `json:"-" plate:"header,resp"`
 }
 
 func handleResp(c *gin.Context, resp interface{}, err error) {
