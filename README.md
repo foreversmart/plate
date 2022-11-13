@@ -82,8 +82,9 @@ In the ginroute package, we also define some struct tag control logic to handle 
 * config option has inline and full
   * inline will expand child object's fields  to parent fields. it's useful when parent will bring useless prefix path when marshal
   * full is valid only used in middle passing intermediate result. it means we take the current object as a full object and ignore child fields. it is very useful when some child fields is not public or can't be copied eg. time.Time  
+  
 *Response*
-response is default in json body with json tag
+* response is default in json body with json tag
 * support user define code and header to control http response code and headers
 * with tag 'plate' loc 'resp' field is code and header. code type must be number type and headers must be map[string]string. user header empty value to delete a header key.
 * eg.
