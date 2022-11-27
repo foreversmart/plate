@@ -11,9 +11,9 @@ import (
 // return view and error
 func FetchViewFromStruct(v reflect.Value, full bool, tagOpt ...string) (view *View, err error) {
 	// zero value cant get view
-	if v.IsZero() {
-		return nil, nil
-	}
+	//if v.IsZero() {
+	//	return nil, nil
+	//}
 
 	for v.Kind() == reflect.Ptr {
 		if v.IsNil() {
