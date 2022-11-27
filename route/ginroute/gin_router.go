@@ -266,29 +266,34 @@ func (g *GinRouter) Handle(method, path string, handler route.Handler, v interfa
 			}
 		}
 
-		respView, err := view.FetchViewFromStruct(reflect.ValueOf(resp), false, request.TagNameFetch, request.LocResp)
-		if err != nil {
-			logger.StdLog.Error(err)
-			c.JSON(200, resp)
+		if resp != nil {
+			respView, err := view.FetchViewFromStruct(reflect.ValueOf(resp), false, request.TagNameFetch, request.LocResp)
+			if err != nil {
+				logger.StdLog.Error(err)
+				c.JSON(200, resp)
+				return
+			}
+
+			// return handler resp
+			ctrResp := &CommonRespCtr{
+				Code: http.StatusOK,
+			}
+			err = respView.SetObjectValue(ctrResp, false, request.TagNameFetch, request.LocResp)
+			if err != nil {
+				logger.StdLog.Error(err)
+				c.JSON(200, resp)
+				return
+			}
+
+			for k, v := range ctrResp.Header {
+				c.Header(k, v)
+			}
+			c.JSON(ctrResp.Code, resp)
 			return
 		}
 
-		// return handler resp
-		ctrResp := &CommonRespCtr{
-			Code: http.StatusOK,
-		}
-		err = respView.SetObjectValue(ctrResp, false, request.TagNameFetch, request.LocResp)
-		if err != nil {
-			logger.StdLog.Error(err)
-			c.JSON(200, resp)
-			return
-		}
+		c.JSON(http.StatusOK, resp)
 
-		for k, v := range ctrResp.Header {
-			c.Header(k, v)
-		}
-
-		c.JSON(ctrResp.Code, resp)
 	})
 }
 
