@@ -118,7 +118,8 @@ func parse(v reflect.Value, jsonValue *fastjson.Value, meta map[string]map[strin
 				if option == TagOptionInline {
 					err := parseJson(v.Field(i), jsonValue, meta, jsonPath)
 					if err != nil {
-						return err
+						fmt.Printf("parseJson %s with error %v \n", jsonPath, err)
+						continue
 					}
 					continue
 				}
@@ -132,7 +133,8 @@ func parse(v reflect.Value, jsonValue *fastjson.Value, meta map[string]map[strin
 
 				err := parseJson(v.Field(i), jsonValue, meta, newJsonPath)
 				if err != nil {
-					return err
+					fmt.Printf("parseJson %s with error %v \n", newJsonPath, err)
+					continue
 				}
 			default:
 				if option == TagOptionInline {
