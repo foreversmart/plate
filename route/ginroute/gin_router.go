@@ -76,8 +76,11 @@ func (g *GinRouter) Sub(relativePath string) route.Router {
 		routeMap: make(map[string][]string),
 	}
 
+	ng.beforeMid = make([]*route.Middle, len(g.beforeMid))
+	ng.afterMid = make([]*route.Middle, len(g.afterMid))
 	copy(ng.beforeMid, g.beforeMid)
 	copy(ng.afterMid, g.afterMid)
+
 	g.subs = append(g.subs, ng)
 	ng.parentAfterMidNum = len(g.afterMid)
 	ng.autoCors = g.autoCors
