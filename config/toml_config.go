@@ -47,7 +47,7 @@ func (c *TomlConfig) Init(mode ModeType, path, configName, host, meta string) er
 			panic(e)
 		}
 
-		e = toml.Unmarshal(buff.Bytes(), &v)
+		e = toml.Unmarshal(buff.Bytes(), v)
 		if e != nil {
 			panic(e)
 		}

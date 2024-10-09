@@ -10,7 +10,7 @@ func TestToml(t *testing.T) {
 	type TestConfig struct {
 		Host     string `toml:"host"`
 		Port     int    `toml:"port"`
-		Username string `toml:"username"`
+		UserName string `toml:"userName"`
 		Password string `toml:"password"`
 	}
 
@@ -20,6 +20,6 @@ func TestToml(t *testing.T) {
 	err := c.Init(Test, "", "", "", "")
 	assert.Nil(t, err)
 
-	fmt.Println(testConfig)
+	fmt.Println(testConfig, "0000")
 
 }
