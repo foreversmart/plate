@@ -52,7 +52,7 @@ func NewApplication(mode config.ModeType, srcPaths ...string) (app *Application,
 	return
 }
 
-func (a *Application) Run() {
+func (a *Application) Run(addr ...string) {
 
 	go func() {
 		sigs := make(chan os.Signal, 1)
@@ -70,5 +70,5 @@ func (a *Application) Run() {
 
 	}()
 
-	a.Server.Run()
+	a.Server.Run(addr...)
 }
