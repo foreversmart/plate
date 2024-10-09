@@ -1,7 +1,7 @@
 package config
 
 import (
-	"encoding/json"
+	"bytes"
 	"fmt"
 	"github.com/BurntSushi/toml"
 	"io/ioutil"
@@ -40,12 +40,14 @@ func (c *TomlConfig) Init(mode ModeType, path, configName, host, meta string) er
 			continue
 		}
 
-		s, e := json.Marshal(vv)
+		buff := &bytes.Buffer{}
+		encoder := toml.NewEncoder(buff)
+		e := encoder.Encode(vv)
 		if e != nil {
 			panic(e)
 		}
 
-		e = json.Unmarshal(s, &v)
+		e = toml.Unmarshal(buff.Bytes(), &v)
 		if e != nil {
 			panic(e)
 		}
